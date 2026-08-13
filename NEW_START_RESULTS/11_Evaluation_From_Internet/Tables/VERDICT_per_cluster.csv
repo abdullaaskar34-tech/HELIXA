@@ -1,0 +1,7 @@
+cluster,cluster_name,n_patients,independent_sources_significant,sources_significant_AND_positive,mean_matching_pct,mean_enrichment_over_chance,strongest_evidence,VERDICT
+0,MTC_Mitochondrial_OXPHOS,40,3/4,2/4,51.2,2.15,MTC_mitochondrial 72% (=2.9x chance) [Garofano2021],CONFIRMED (moderate)
+1,PN_Proneural_Progenitor,49,4/4,3/4,60.2,2.69,Proliferation 57% (=3.4x chance) [Lineage],CONFIRMED (strong)
+2,CL_Classical_EGFR,65,1/4,1/4,47.7,1.96,PPR_proliferative 55% (=2.2x chance) [Garofano2021],PARTIALLY SUPPORTED
+3,MES_Mesenchymal_Immune,63,4/4,4/4,70.6,2.84,Myeloid_microglia 64% (=3.8x chance) [Lineage],CONFIRMED (strong)
+4,INT_Intermediate_Mixed,67,3/4,3/4,39.2,1.36,NEU_neuronal 40% (=1.6x chance) [Garofano2021],PARTIALLY SUPPORTED
+5,OLIGO_Neural_Myelin,44,3/4,3/4,60.2,2.32,NEU_neuronal 75% (=3.0x chance) [Garofano2021],CONFIRMED (strong)

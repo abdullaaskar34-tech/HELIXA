@@ -1,0 +1,19 @@
+{
+  "sample_id": "b18fea3f-d240-4f38-b1c0-5b8cd2ac6d38",
+  "true_cluster": 1,
+  "true_name": "PN_Proneural_Progenitor",
+  "predicted_cluster": 1,
+  "predicted_name": "PN_Proneural_Progenitor",
+  "correct": true,
+  "confidence": 0.9873298905862373,
+  "is_core": true,
+  "detected_protocol_correct": true,
+  "probabilities": {
+    "MTC_Mitochondrial_OXPHOS": 2.179721301311087e-13,
+    "PN_Proneural_Progenitor": 0.9873298905862373,
+    "CL_Classical_EGFR": 3.1380090992093686e-12,
+    "MES_Mesenchymal_Immune": 6.897718733192169e-17,
+    "INT_Intermediate_Mixed": 1.6813178143032945e-05,
+    "OLIGO_Neural_Myelin": 0.012653296232263548
+  }
+}

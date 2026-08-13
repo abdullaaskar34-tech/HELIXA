@@ -1,0 +1,49 @@
+==============================================================================
+GBM SUBTYPE PREDICTOR
+النموذج: LogisticRegression   |   دقة التحقق المتقاطع: 99.89%   |   ROC-AUC: 1.0000
+==============================================================================
+
+الملف: 023b8167-1786643003217_3a87096458084c3981077dafc36f5d62.rna_seq.augmented_star_gene_counts.tsv
+  الجينات المطابقة    : 27,777 / 27,777
+  البروتوكول المكتشف  : total-RNA / rRNA-depleted (نسبة non-polyA = 0.3552)
+
+  >>> النمط المتوقّع : cluster_5 — OLIGO_Neural_Myelin
+  >>> الثقة          : 99.2 %  (واثق)
+
+  قليل التغصّن / مايلين مرتفع مع مكوّن عصبي.
+     جينات مميزة: MBP, PLP1, MAG, MOG, CNP, MYRF.
+
+  احتمالات كل الأنماط:
+    cluster_0 MTC_Mitochondrial_OXPHOS     0.0%  
+    cluster_1 PN_Proneural_Progenitor      0.0%  
+    cluster_2 CL_Classical_EGFR            0.0%  
+    cluster_3 MES_Mesenchymal_Immune       0.0%  
+    cluster_4 INT_Intermediate_Mixed       0.8%  
+    cluster_5 OLIGO_Neural_Myelin         99.2%  ████████████████████████████████████████ <<<
+------------------------------------------------------------------------------
+
+الملف: 5701e67a-1786641187972_b18fea3fd2404f38b1c05b8cd2ac6d38.rna_seq.augmented_star_gene_counts.tsv
+  الجينات المطابقة    : 27,777 / 27,777
+  البروتوكول المكتشف  : total-RNA / rRNA-depleted (نسبة non-polyA = 0.6272)
+
+  >>> النمط المتوقّع : cluster_1 — PN_Proneural_Progenitor
+  >>> الثقة          : 98.8 %  (واثق)
+
+  Proneural / سلائف عصبية — 96% من مرضى هذه المجموعة يطابقون توقيع Verhaak Proneural.
+     جينات مميزة: NKAIN1, DCX, ATCAY, SCN3A.
+
+  احتمالات كل الأنماط:
+    cluster_0 MTC_Mitochondrial_OXPHOS     0.0%  
+    cluster_1 PN_Proneural_Progenitor     98.8%  ████████████████████████████████████████ <<<
+    cluster_2 CL_Classical_EGFR            0.0%  
+    cluster_3 MES_Mesenchymal_Immune       0.0%  
+    cluster_4 INT_Intermediate_Mixed       0.0%  
+    cluster_5 OLIGO_Neural_Myelin          1.2%  
+------------------------------------------------------------------------------
+
+تم حفظ النتائج -> /mnt/user-data/working/NEW_START_RESULTS/10_Prediction_Model/Example_Predictions/prediction_results.csv
+
+ملخّص التوزيع:
+predicted_name
+OLIGO_Neural_Myelin        1
+PN_Proneural_Progenitor    1

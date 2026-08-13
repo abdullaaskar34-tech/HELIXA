@@ -1,0 +1,6 @@
+source,independent,chi2,dof,p_value,cramers_V,adjusted_rand_index,adjusted_mutual_info,mean_top_match_pct
+A_Verhaak2010,False,412.7,15,1.5054010294506304e-78,0.648,0.343,0.376,65.9
+B_Neftel2019_CellStates,True,236.3,15,8.284298394226919e-42,0.49,0.178,0.232,54.4
+C_Garofano2021_PathwaySubtype,True,291.4,15,3.3705588988682177e-53,0.544,0.201,0.253,63.2
+D_Hallmark_Orthogonal,True,17.9,5,0.00301105897358102,0.234,0.013,0.016,61.3
+E_Lineage_Markers,True,270.0,25,5.987276689018537e-43,0.406,0.157,0.215,40.6

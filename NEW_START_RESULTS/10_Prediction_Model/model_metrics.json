@@ -1,0 +1,12 @@
+{
+  "best_model": "LogisticRegression",
+  "cv_accuracy": 0.9989,
+  "cv_balanced_accuracy": 0.9991,
+  "cv_macro_f1": 0.999,
+  "roc_auc_ovr": 0.9999859067591182,
+  "cohen_kappa": 0.9955451118617517,
+  "boundary_agreement": 0.8909090909090909,
+  "permutation_p": 0.004975124378109453,
+  "null_accuracy": 0.19295757575757577,
+  "n_train": 273
+}

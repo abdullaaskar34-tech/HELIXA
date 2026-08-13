@@ -1,0 +1,1 @@
+{"matrix":[[26,0,0,0,0,0],[0,44,0,0,0,0],[0,0,57,0,0,0],[0,0,0,56,1,0],[0,0,0,0,54,0],[0,0,0,0,0,35]],"labels":["MTC_Mitochondrial_OXPHOS","PN_Proneural_Progenitor","CL_Classical_EGFR","MES_Mesenchymal_Immune","INT_Intermediate_Mixed","OLIGO_Neural_Myelin"],"n":273,"source":"CORE patients, 5-fold cross-validation"}

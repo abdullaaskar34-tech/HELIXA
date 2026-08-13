@@ -1,0 +1,48 @@
+# ── secrets & environment ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+credentials.json
+.netrc
+
+# ── python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ── node ────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.pnpm-debug.log*
+
+# ── raw data (never commit — 1.3 GB of patient RNA-seq) ─────────────
+rawdata/
+*.rna_seq.augmented_star_gene_counts.tsv
+01_Data_Preparation/*.npy
+CRISPRGeneDependency.csv
+*.bam
+*.fastq*
+
+# ── large intermediates ─────────────────────────────────────────────
+*.npy
+!NEW_START_RESULTS/04_Consensus_Clustering/final_embedding.npy
+
+# ── os / editor ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── runtime ─────────────────────────────────────────────────────────
+website/backend/uploads/
+prediction_results.csv
+_to_delete/

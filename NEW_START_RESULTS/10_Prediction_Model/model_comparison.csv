@@ -1,0 +1,17 @@
+dataset,model,accuracy_mean,accuracy_std,balanced_accuracy,macro_F1,cohen_kappa
+CORE_only,LogisticRegression,0.9989,0.0044,0.9991,0.999,0.9955
+CORE_only,LDA,0.9901,0.0137,0.9898,0.9902,0.9777
+CORE_only,SVM_rbf,0.9887,0.0141,0.9884,0.9888,0.9866
+CORE_only,RandomForest,0.9503,0.0386,0.9395,0.9427,0.9509
+CORE_only,ExtraTrees,0.981,0.0202,0.9763,0.9793,0.9866
+CORE_only,GradientBoosting,0.9173,0.0389,0.9092,0.9103,0.8973
+CORE_only,kNN_k5,0.959,0.0259,0.9558,0.9594,0.9465
+CORE_only,kNN_k11,0.962,0.0277,0.9476,0.9546,0.9464
+ALL_patients,LogisticRegression,0.9689,0.0164,0.969,0.968,0.9632
+ALL_patients,LDA,0.9357,0.0318,0.9308,0.9333,0.9076
+ALL_patients,SVM_rbf,0.9457,0.0234,0.9467,0.9452,0.9337
+ALL_patients,RandomForest,0.9116,0.0333,0.9063,0.9061,0.8894
+ALL_patients,ExtraTrees,0.9399,0.026,0.9383,0.9384,0.9336
+ALL_patients,GradientBoosting,0.8798,0.0386,0.8735,0.873,0.8341
+ALL_patients,kNN_k5,0.8881,0.0346,0.8836,0.8848,0.8599
+ALL_patients,kNN_k11,0.9073,0.0288,0.9003,0.9049,0.8928

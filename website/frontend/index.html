@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>HELIXA — Turning Genomics into Decisions | KBU-MedLab</title>
+<meta name="description" content="HELIXA is a biomedical AI platform by KBU-MedLab for glioblastoma genomic subtype discovery, classification, evaluation and interactive visualisation. Turning Genomics into Decisions." />
+<meta name="author" content="KBU-MedLab" />
+<meta name="theme-color" content="#0B3B39" />
+<meta property="og:title" content="HELIXA — Turning Genomics into Decisions" />
+<meta property="og:description" content="Biomedical AI platform for genomic subtype discovery and classification. Developed by KBU-MedLab." />
+<meta property="og:type" content="website" />
+<link rel="icon" type="image/png" href="./assets/logos/favicon.png" />
+<link rel="apple-touch-icon" href="./assets/logos/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./css/helixa.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════ OPENING EXPERIENCE ══════════════════════════ -->
+<div id="intro" role="dialog" aria-label="HELIXA introduction">
+  <canvas id="intro-canvas" aria-hidden="true"></canvas>
+  <div class="intro-wrap">
+    <img class="intro-logo" src="./assets/logos/helixa-logo.png" alt="HELIXA" />
+    <div class="intro-rule" aria-hidden="true"></div>
+    <div class="intro-slogan">Turning Genomics into Decisions</div>
+    <div class="intro-team">KBU-MedLab</div>
+  </div>
+  <button class="intro-skip" id="skip-intro">Skip</button>
+</div>
+
+<!-- ══════════════════════════ NAV ══════════════════════════ -->
+<nav class="nav" id="nav" hidden>
+  <div class="nav-in">
+    <a class="nav-brand" href="#/" aria-label="HELIXA home">
+      <img src="./assets/logos/helixa-logo.png" alt="HELIXA" />
+      <span class="tag">Turning Genomics<br />into Decisions</span>
+    </a>
+    <button class="nav-burger" id="burger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span>
+    </button>
+    <div class="nav-links" id="nav-links">
+      <a href="#/dashboard">Dashboard</a>
+      <a href="#/patients">Patients</a>
+      <a href="#/pipeline">Pipeline</a>
+      <a href="#/analytics">Analytics</a>
+      <a href="#/evaluation">Model Evaluation</a>
+      <a href="#/visualizations">Visualizations</a>
+      <a href="#/about">About</a>
+      <a href="#/analyze" class="nav-cta">Analyze Patient</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════ APP ══════════════════════════ -->
+<main id="app" aria-live="polite"></main>
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="footer" id="footer" hidden>
+  <div class="wrap">
+    <div class="grid g4" style="gap:34px">
+      <div>
+        <img class="footer-logo" src="./assets/logos/helixa-logo-white.png" alt="HELIXA" />
+        <p style="font-size:14px;line-height:1.65;margin-bottom:14px">
+          Turning Genomics into Decisions
+        </p>
+        <p style="font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6">
+          A biomedical AI platform for genomic subtype discovery, classification and
+          decision support.
+        </p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <div style="display:grid;gap:9px">
+          <a href="#/dashboard">Dashboard</a>
+          <a href="#/analyze">Analyze Patient</a>
+          <a href="#/patients">Patient Cohort</a>
+          <a href="#/pipeline">Processing Pipeline</a>
+        </div>
+      </div>
+      <div>
+        <h4>Science</h4>
+        <div style="display:grid;gap:9px">
+          <a href="#/analytics">Analytics</a>
+          <a href="#/evaluation">Model Evaluation</a>
+          <a href="#/visualizations">Visualizations</a>
+          <a href="#/about">Team &amp; Method</a>
+        </div>
+      </div>
+      <div>
+        <h4>KBU-MedLab</h4>
+        <div style="display:grid;gap:9px">
+          <a href="mailto:kbumedlab@gmail.com">kbumedlab@gmail.com</a>
+          <a href="tel:+905383149253">0 538 314 9253</a>
+        </div>
+        <img src="./assets/logos/teknofest-logo.png" alt="TEKNOFEST"
+             style="height:56px;width:auto;margin-top:20px" />
+      </div>
+    </div>
+    <div class="footer-bot">
+      <div>© <span id="yr"></span> KBU-MedLab · HELIXA — Turning Genomics into Decisions</div>
+      <div>Built on real TCGA/GDC glioblastoma RNA-seq · 328 patients · 6 molecular subtypes</div>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-label="Enlarged figure">
+  <button class="x" id="lb-close" aria-label="Close">×</button>
+  <div style="display:grid;place-items:center">
+    <img id="lb-img" src="" alt="" />
+    <div class="cap" id="lb-cap"></div>
+  </div>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

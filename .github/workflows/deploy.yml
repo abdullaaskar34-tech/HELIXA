@@ -1,0 +1,69 @@
+name: Deploy HELIXA to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify site integrity
+        run: |
+          set -e
+          cd website/frontend
+          echo "── required files ──"
+          for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js \
+                   assets/logos/helixa-logo.png assets/logos/teknofest-logo.png; do
+            test -f "$f" && echo "  ok   $f" || { echo "  MISS $f"; exit 1; }
+          done
+          echo "── data payloads ──"
+          n=$(ls data/*.json | wc -l);  echo "  $n JSON datasets"
+          test "$n" -ge 15 || { echo "  expected >= 15 datasets"; exit 1; }
+          echo "── figures ──"
+          p=$(ls assets/plots/*.png | wc -l); echo "  $p scientific figures"
+          test "$p" -ge 20 || { echo "  expected >= 20 figures"; exit 1; }
+          echo "── javascript syntax ──"
+          for f in js/*.js js/views/*.js; do
+            node --input-type=module --eval "$(printf 'import%s' '' ; cat /dev/null)" 2>/dev/null || true
+          done
+          node -e "
+            const fs=require('fs');
+            const files=[...fs.readdirSync('js').filter(f=>f.endsWith('.js')).map(f=>'js/'+f),
+                         ...fs.readdirSync('js/views').map(f=>'js/views/'+f)];
+            let bad=0;
+            for(const f of files){
+              try{ new Function(fs.readFileSync(f,'utf8').replace(/^\s*(import|export)\s.*\$/gm,'')); }
+              catch(e){ console.log('  SYNTAX '+f+': '+e.message); bad++; }
+            }
+            if(bad){ process.exit(1); }
+            console.log('  '+files.length+' modules parsed cleanly');
+          "
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/frontend
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
