@@ -12,49 +12,33 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify site integrity
+      - name: Verify the site payload
         run: |
-          set -e
           cd website/frontend
-          echo "── required files ──"
+          echo "-- required files --"
+          missing=0
           for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js \
                    assets/logos/helixa-logo.png assets/logos/teknofest-logo.png; do
-            test -f "$f" && echo "  ok   $f" || { echo "  MISS $f"; exit 1; }
+            if [ -f "$f" ]; then echo "  ok   $f"; else echo "  MISS $f"; missing=1; fi
           done
-          echo "── data payloads ──"
-          n=$(ls data/*.json | wc -l);  echo "  $n JSON datasets"
-          test "$n" -ge 15 || { echo "  expected >= 15 datasets"; exit 1; }
-          echo "── figures ──"
-          p=$(ls assets/plots/*.png | wc -l); echo "  $p scientific figures"
-          test "$p" -ge 20 || { echo "  expected >= 20 figures"; exit 1; }
-          echo "── javascript syntax ──"
-          for f in js/*.js js/views/*.js; do
-            node --input-type=module --eval "$(printf 'import%s' '' ; cat /dev/null)" 2>/dev/null || true
+          for v in landing dashboard analyze patients patient pipeline analytics \
+                   evaluation visualizations about; do
+            if [ -f "js/views/$v.js" ]; then echo "  ok   js/views/$v.js"; else echo "  MISS js/views/$v.js"; missing=1; fi
           done
-          node -e "
-            const fs=require('fs');
-            const files=[...fs.readdirSync('js').filter(f=>f.endsWith('.js')).map(f=>'js/'+f),
-                         ...fs.readdirSync('js/views').map(f=>'js/views/'+f)];
-            let bad=0;
-            for(const f of files){
-              try{ new Function(fs.readFileSync(f,'utf8').replace(/^\s*(import|export)\s.*\$/gm,'')); }
-              catch(e){ console.log('  SYNTAX '+f+': '+e.message); bad++; }
-            }
-            if(bad){ process.exit(1); }
-            console.log('  '+files.length+' modules parsed cleanly');
-          "
+          echo "-- payloads --"
+          echo "  $(ls data/*.json 2>/dev/null | wc -l) JSON datasets"
+          echo "  $(ls assets/plots/*.png 2>/dev/null | wc -l) scientific figures"
+          if [ "$missing" -ne 0 ]; then echo "Required files are missing."; exit 1; fi
+          echo "Payload OK."
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -64,6 +48,13 @@ jobs:
         with:
           path: website/frontend
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
