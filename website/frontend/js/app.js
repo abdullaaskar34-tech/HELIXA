@@ -67,16 +67,8 @@ let stopIntro = null;
 
 /* ─────────────────────────────────────────── router */
 const routes = {
-  '/':               () => import('./views/landing.js'),
-  '/dashboard':      () => import('./views/dashboard.js'),
-  '/analyze':        () => import('./views/analyze.js'),
-  '/patients':       () => import('./views/patients.js'),
-  '/patient':        () => import('./views/patient.js'),
-  '/pipeline':       () => import('./views/pipeline.js'),
-  '/analytics':      () => import('./views/analytics.js'),
-  '/evaluation':     () => import('./views/evaluation.js'),
-  '/visualizations': () => import('./views/visualizations.js'),
-  '/about':          () => import('./views/about.js'),
+  '/':        () => import('./views/home.js'),
+  '/analyze': () => import('./views/analyze.js'),
 };
 
 function parseHash() {
@@ -97,7 +89,7 @@ async function render() {
 
   document.querySelectorAll('.nav-links a').forEach(a => {
     const t = (a.getAttribute('href') || '').slice(1).split('?')[0];
-    a.classList.toggle('active', t === base || (base === '/patient' && t === '/patients'));
+    a.classList.toggle('active', t === base);
   });
   document.getElementById('nav-links')?.classList.remove('open');
   document.getElementById('burger')?.setAttribute('aria-expanded', 'false');

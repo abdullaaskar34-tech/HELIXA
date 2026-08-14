@@ -155,7 +155,7 @@ export function donut(data, opts = {}) {
 
 /* ───────────────────────────────────────────── confidence gauge */
 export function gauge(value, opts = {}) {
-  const { size = 200, label = 'Confidence', color, thick = 15 } = opts;
+  const { size = 200, label = 'Confidence', color, thick = 15, onDark = false } = opts;
   const s = svg(size, size * .68);
   const cx = size / 2, cy = size * .58, R = size / 2 - 14;
   const arc = (from, to, col, wdt) => {
@@ -165,15 +165,17 @@ export function gauge(value, opts = {}) {
       A ${R} ${R} 0 ${large} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)}`,
       fill: 'none', stroke: col, 'stroke-width': wdt, 'stroke-linecap': 'round' });
   };
-  s.appendChild(arc(0, 1, '#E4F0EC', thick));
+  s.appendChild(arc(0, 1, onDark ? 'rgba(255,255,255,.16)' : '#E4F0EC', thick));
   const v = Math.max(0, Math.min(1, value || 0));
   const col = color || (v >= .8 ? TEAL.ok : v >= .5 ? TEAL.mint : TEAL.warn);
   if (v > 0.002) s.appendChild(arc(0, v, col, thick));
+  const inkMain = onDark ? '#ffffff' : TEAL.deep;
+  const inkSub  = onDark ? 'rgba(255,255,255,.62)' : TEAL.ink3;
   s.appendChild(txt(cx, cy - 12, (v * 100).toFixed(1) + '%',
-    { anchor: 'middle', size: 27, weight: 700, fill: TEAL.deep }));
-  s.appendChild(txt(cx, cy + 8, label, { anchor: 'middle', size: 10, fill: TEAL.ink3, weight: 620 }));
-  s.appendChild(txt(cx - R, cy + 17, '0%', { anchor: 'middle', size: 9.5, fill: TEAL.ink3 }));
-  s.appendChild(txt(cx + R, cy + 17, '100%', { anchor: 'middle', size: 9.5, fill: TEAL.ink3 }));
+    { anchor: 'middle', size: 27, weight: 700, fill: inkMain }));
+  s.appendChild(txt(cx, cy + 8, label, { anchor: 'middle', size: 10, fill: inkSub, weight: 620 }));
+  s.appendChild(txt(cx - R, cy + 17, '0%', { anchor: 'middle', size: 9.5, fill: inkSub }));
+  s.appendChild(txt(cx + R, cy + 17, '100%', { anchor: 'middle', size: 9.5, fill: inkSub }));
   return s;
 }
 

@@ -13,9 +13,6 @@ function apiBases() {
   if (q) out.push(q.replace(/\/$/, ''));
   if (l) out.push(l.replace(/\/$/, ''));
   out.push('http://127.0.0.1:8000', 'http://localhost:8000');
-  if (location.protocol !== 'file:' && !/github\.io$/.test(location.hostname)) {
-    out.push(location.origin);
-  }
   return [...new Set(out)];
 }
 

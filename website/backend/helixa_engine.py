@@ -215,7 +215,7 @@ def analyse(raw: bytes | str, filename: str = 'upload.tsv',
                             'runner_up': runner}
     emit('confidence', 'done', stages['confidence'])
 
-    # ── 8. biological validation (marker read-out on this sample) ───────────
+    # ── 8. biological validation + EXPLAINABILITY ───────────────────────────
     t = stage('validate')
     info = SUBTYPE_INFO[pred]
     gnames = a['gene_names_filtered'][a['KEEP_mask']]
@@ -228,9 +228,41 @@ def analyse(raw: bytes | str, filename: str = 'upload.tsv',
             marker_readout.append({'gene': g, 'z': round(float(z[gpos[g]]), 3),
                                    'elevated': bool(z[gpos[g]] > 0)})
     n_elev = sum(1 for m in marker_readout if m['elevated'])
+
+    # WHY did the model choose this class?
+    # The classifier is linear in PCA space, and PCA is linear in gene space, so
+    # every gene's exact contribution to the decision can be recovered:
+    #     contribution(gene) = sum_pc  coef[class][pc] * loading[pc][gene] * z[gene]
+    # This is not an approximation or a saliency heuristic — it is the decision
+    # function itself, decomposed.
+    gi = a['signature_gene_idx']
+    coef = a['model'].coef_[pred]                     # (n_pcs,)
+    load = a['pca'].components_                       # (n_pcs, n_signature_genes)
+    zsig = z[gi] - a['pca'].mean_                     # centred exactly as PCA does
+    contrib = (coef @ load) * zsig                    # (n_signature_genes,)
+
+    order = np.argsort(contrib)[::-1]
+    top_for, top_against = [], []
+    for j in order[:12]:
+        top_for.append({'gene': str(gnames[gi[j]]), 'contribution': round(float(contrib[j]), 4),
+                        'z': round(float(z[gi[j]]), 3)})
+    for j in order[-8:][::-1]:
+        top_against.append({'gene': str(gnames[gi[j]]), 'contribution': round(float(contrib[j]), 4),
+                            'z': round(float(z[gi[j]]), 3)})
+    total_pos = float(contrib[contrib > 0].sum()) or 1.0
+    for m in top_for:
+        m['share_pct'] = round(100 * m['contribution'] / total_pos, 2)
+
+    # per-principal-component contribution
+    pc_contrib = [{'pc': f'PC{i+1}', 'value': round(float(emb[0][i]), 3),
+                   'coef': round(float(coef[i]), 4),
+                   'contribution': round(float(coef[i] * emb[0][i]), 4)}
+                  for i in range(len(coef))]
+
     stages['validate'] = {'ms': int((time.time()-t)*1000), 'markers_checked': len(marker_readout),
                           'markers_elevated': n_elev,
-                          'agreement_pct': round(100*n_elev/len(marker_readout), 1) if marker_readout else None}
+                          'agreement_pct': round(100*n_elev/len(marker_readout), 1) if marker_readout else None,
+                          'genes_driving_decision': len(top_for)}
     emit('validate', 'done', stages['validate'])
 
     # ── 9. insight ──────────────────────────────────────────────────────────
@@ -258,6 +290,15 @@ def analyse(raw: bytes | str, filename: str = 'upload.tsv',
         'genes_expected': int(len(want)),
         'embedding': [round(float(v), 4) for v in emb[0]],
         'marker_readout': marker_readout,
+        'why': {
+            'top_genes_for': top_for,
+            'top_genes_against': top_against,
+            'pc_contributions': pc_contrib,
+            'method': ('The classifier is linear in principal-component space and PCA is linear in '
+                       'gene space, so each gene\'s exact contribution to this decision is '
+                       'coef[class] · loading · z(gene). These are the decision function itself, '
+                       'decomposed — not an approximation.'),
+        },
         'stages': stages,
         'total_ms': int((time.time()-t_all)*1000),
         'model_name': a['model_name'],

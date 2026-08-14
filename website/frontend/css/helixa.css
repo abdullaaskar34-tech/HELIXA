@@ -299,6 +299,13 @@ label.lbl{display:block;font-size:12px;font-weight:640;color:var(--ink-2);margin
   display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:12.5px;
   color:rgba(255,255,255,.55)}
 
+.an-grid{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+@media(max-width:1000px){.an-grid{grid-template-columns:1fr}}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary{list-style:none;display:flex;align-items:center;gap:8px}
+details.card summary::before{content:'▸';color:var(--mint-500);transition:transform .2s var(--ease)}
+details.card[open] summary::before{transform:rotate(90deg)}
+
 .gauge-wrap{position:relative;display:grid;place-items:center}
 .gauge-txt{position:absolute;text-align:center}
 .gauge-v{font-size:34px;font-weight:700;color:var(--teal-900);letter-spacing:-.03em;
