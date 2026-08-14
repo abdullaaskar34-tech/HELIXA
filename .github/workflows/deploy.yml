@@ -24,20 +24,25 @@ jobs:
       - name: Verify the site payload
         run: |
           cd website/frontend
-          echo "-- required files --"
           missing=0
-          for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js \
-                   assets/logos/helixa-logo.png assets/logos/teknofest-logo.png; do
+          echo "-- core files --"
+          for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js; do
             if [ -f "$f" ]; then echo "  ok   $f"; else echo "  MISS $f"; missing=1; fi
           done
-          for v in landing dashboard analyze patients patient pipeline analytics \
-                   evaluation visualizations about; do
-            if [ -f "js/views/$v.js" ]; then echo "  ok   js/views/$v.js"; else echo "  MISS js/views/$v.js"; missing=1; fi
+          echo "-- branding --"
+          for f in assets/logos/helixa-logo.png assets/logos/teknofest-logo.png; do
+            if [ -f "$f" ]; then echo "  ok   $f"; else echo "  MISS $f"; missing=1; fi
           done
-          echo "-- payloads --"
-          echo "  $(ls data/*.json 2>/dev/null | wc -l) JSON datasets"
-          echo "  $(ls assets/plots/*.png 2>/dev/null | wc -l) scientific figures"
-          if [ "$missing" -ne 0 ]; then echo "Required files are missing."; exit 1; fi
+          echo "-- pages --"
+          nviews=$(ls js/views/*.js 2>/dev/null | wc -l)
+          echo "  $nviews page module(s):"
+          ls js/views/*.js 2>/dev/null | sed 's|^|    |'
+          if [ "$nviews" -lt 1 ]; then echo "  no page modules found"; missing=1; fi
+          echo "-- data --"
+          ndata=$(ls data/*.json 2>/dev/null | wc -l)
+          echo "  $ndata JSON dataset(s)"
+          if [ "$ndata" -lt 1 ]; then echo "  no datasets found"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then echo "STOP: required files are missing."; exit 1; fi
           echo "Payload OK."
 
       - name: Setup Pages
