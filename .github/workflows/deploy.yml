@@ -26,7 +26,7 @@ jobs:
           cd website/frontend
           missing=0
           echo "-- core files --"
-          for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js; do
+          for f in index.html css/helixa.css js/app.js js/api.js js/charts.js js/ui.js js/engine.js; do
             if [ -f "$f" ]; then echo "  ok   $f"; else echo "  MISS $f"; missing=1; fi
           done
           echo "-- branding --"
@@ -42,6 +42,16 @@ jobs:
           ndata=$(ls data/*.json 2>/dev/null | wc -l)
           echo "  $ndata JSON dataset(s)"
           if [ "$ndata" -lt 1 ]; then echo "  no datasets found"; missing=1; fi
+          echo "-- in-browser model --"
+          if [ -f model/manifest.json ]; then
+            nbin=$(ls model/*.bin 2>/dev/null | wc -l)
+            echo "  ok   model/manifest.json"
+            echo "  $nbin weight file(s), $(du -sh model | cut -f1) total"
+            if [ "$nbin" -lt 1 ]; then echo "  no weight files"; missing=1; fi
+          else
+            echo "  MISS model/manifest.json — the classifier could not run in the browser"
+            missing=1
+          fi
           if [ "$missing" -ne 0 ]; then echo "STOP: required files are missing."; exit 1; fi
           echo "Payload OK."
 

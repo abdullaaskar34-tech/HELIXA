@@ -1,7 +1,7 @@
 /* HELIXA — home: the product, how it works, the team. Deliberately brief. */
-import { loadAll, state } from '../api.js';
-import { h, card, section, badge, esc, initials } from '../ui.js';
-import { introCanvas } from '../app.js';
+import { loadAll } from '../api.js?v=20260815a';
+import { h, card, section, badge, esc, initials } from '../ui.js?v=20260815a';
+import { introCanvas } from '../app.js?v=20260815a';
 
 let stopBg = null;
 export function cleanup() { stopBg?.(); stopBg = null; }
@@ -21,7 +21,8 @@ export default async function home() {
       h('p', { class: 'lead', style: { margin: '20px auto 0', textAlign: 'center' } },
         'Give HELIXA one raw RNA-seq file from a glioblastoma patient. It tells you which ' +
         'molecular subtype the tumour belongs to, how confident it is, and — most importantly — ' +
-        'exactly which genes led it to that answer.'),
+        'exactly which genes led it to that answer. The model runs in your browser: ' +
+        'the file never leaves your device.'),
       h('div', { class: 'hero-btns', style: { justifyContent: 'center' } },
         h('a', { class: 'btn btn-p', href: '#/analyze' }, 'Analyze a Patient', arrow()),
         h('a', { class: 'btn btn-s', href: '#/analyze?demo=1' }, 'See a real example')),
@@ -46,9 +47,11 @@ export default async function home() {
   root.appendChild(h('section', { class: 'section', style: { background: 'var(--surface-2)',
     borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' } },
     h('div', { class: 'wrap' },
-      section(null, 'How it works', 'Four steps, about a fifth of a second.'),
+      section(null, 'How it works',
+        'Four steps, about a tenth of a second — all of it inside your own browser.'),
       h('div', { class: 'grid g4' },
-        step('1', 'Upload', 'A raw GDC file, exactly as downloaded. No preprocessing.'),
+        step('1', 'Upload', 'A raw GDC file, exactly as downloaded. No preprocessing. ' +
+          'It stays on your device — nothing is sent to a server.'),
         step('2', 'Clean', 'HELIXA detects how the sample was prepared in the lab and corrects for ' +
           'it — otherwise the machine, not the tumour, decides the answer.'),
         step('3', 'Classify', 'A model trained on 328 patients reads 1,000 signature genes and ' +

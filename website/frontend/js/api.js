@@ -1,31 +1,15 @@
 /* HELIXA — data layer
-   Loads the REAL exported results, and talks to the live inference API when it
-   is reachable. Never invents data: if something is missing it says so.        */
+   Loads the REAL exported results that were exported from the project. Never
+   invents data: if something is missing it says so. The classifier itself lives
+   in js/engine.js and runs in the browser — there is no backend.               */
 
 const DATA = './data';
+const V = '20260815a';
 const cache = new Map();
-
-/* Candidate API bases, tried in order. Override with ?api=<url> */
-function apiBases() {
-  const q = new URLSearchParams(location.search).get('api');
-  const l = localStorage.getItem('helixa_api');
-  const out = [];
-  if (q) out.push(q.replace(/\/$/, ''));
-  if (l) out.push(l.replace(/\/$/, ''));
-  out.push('http://127.0.0.1:8000', 'http://localhost:8000');
-  return [...new Set(out)];
-}
-
-export const state = {
-  api: null,          // resolved base url, or null
-  engine: null,       // engine status payload
-  live: false,        // is the real inference engine reachable?
-  checked: false,
-};
 
 export async function loadJSON(name) {
   if (cache.has(name)) return cache.get(name);
-  const r = await fetch(`${DATA}/${name}.json`, { cache: 'force-cache' });
+  const r = await fetch(`${DATA}/${name}.json?v=${V}`);
   if (!r.ok) throw new Error(`Could not load ${name}.json (${r.status})`);
   const d = await r.json();
   cache.set(name, d);
@@ -34,52 +18,6 @@ export async function loadJSON(name) {
 
 export function loadAll(names) {
   return Promise.all(names.map(loadJSON));
-}
-
-/* ── backend detection ─────────────────────────────────────────────────── */
-export async function detectAPI({ timeout = 1800 } = {}) {
-  if (state.checked) return state;
-  state.checked = true;
-  for (const base of apiBases()) {
-    try {
-      const c = new AbortController();
-      const t = setTimeout(() => c.abort(), timeout);
-      const r = await fetch(`${base}/api/health`, { signal: c.signal });
-      clearTimeout(t);
-      if (!r.ok) continue;
-      const h = await r.json();
-      if (h && h.engine) {
-        state.api = base;
-        state.engine = h.engine;
-        state.live = !!h.engine.available;
-        return state;
-      }
-    } catch { /* try next */ }
-  }
-  return state;
-}
-
-export function setAPI(url) {
-  localStorage.setItem('helixa_api', url);
-  state.checked = false;
-  return detectAPI();
-}
-
-/* ── live analysis ─────────────────────────────────────────────────────── */
-export async function startAnalysis(file) {
-  if (!state.api) throw new Error('No inference API is connected.');
-  const fd = new FormData();
-  fd.append('file', file, file.name);
-  const r = await fetch(`${state.api}/api/analyze`, { method: 'POST', body: fd });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || `Analysis request failed (${r.status})`);
-  return d;
-}
-
-export async function pollAnalysis(jobId) {
-  const r = await fetch(`${state.api}/api/analyze/${jobId}`);
-  if (!r.ok) throw new Error(`Could not read job status (${r.status})`);
-  return r.json();
 }
 
 /* ── derived helpers over the real cohort ──────────────────────────────── */

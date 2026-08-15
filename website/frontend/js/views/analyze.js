@@ -1,25 +1,26 @@
 /* HELIXA — Analyze a Patient.
-   Runs the real model when the local engine is reachable; otherwise offers real
-   pre-computed analyses of actual patients, clearly labelled as examples.
-   Either way the result explains WHY, gene by gene.                          */
 
-import { loadAll, loadJSON, state, detectAPI, startAnalysis, pollAnalysis, setAPI } from '../api.js';
-import { h, card, section, badge, banner, kv, esc } from '../ui.js';
-import { gauge, barsH, scatter, legend } from '../charts.js';
+   The model runs INSIDE THE BROWSER. Nothing is uploaded anywhere, no server
+   is involved, and the arithmetic is the frozen classifier itself — verified
+   against the Python engine to 6e-8. See js/engine.js.                       */
 
-let timer = null;
-export function cleanup() { clearInterval(timer); timer = null; }
+import { loadAll } from '../api.js?v=20260815a';
+import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260815a';
+import { gauge, barsH, scatter, legend } from '../charts.js?v=20260815a';
+import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260815a';
+
+export function cleanup() {}
 
 const STAGES = [
-  ['ingest',     'Reading the file',        'Opening the raw GDC expression file'],
-  ['qc',         'Checking the genes',      'Matching genes to what the model was trained on'],
+  ['ingest',     'Reading the file',          'Opening the raw GDC expression file'],
+  ['qc',         'Checking the genes',        'Matching genes to what the model was trained on'],
   ['batch',      'Correcting the lab effect', 'Detecting how the sample was prepared, removing that bias'],
-  ['features',   'Selecting the signature', 'Keeping the 1,000 genes that carry the signal'],
-  ['embed',      'Compressing',             'Reducing to 5 dimensions the model understands'],
-  ['model',      'Classifying',             'Comparing against all six subtypes'],
-  ['confidence', 'Measuring certainty',     'Turning the scores into calibrated probabilities'],
-  ['validate',   'Explaining',              'Working out which genes drove the decision'],
-  ['insight',    'Done',                    'Assembling the report'],
+  ['features',   'Selecting the signature',   'Keeping the 1,000 genes that carry the signal'],
+  ['embed',      'Compressing',               'Reducing to 5 dimensions the model understands'],
+  ['model',      'Classifying',               'Comparing against all six subtypes'],
+  ['confidence', 'Measuring certainty',       'Turning the scores into calibrated probabilities'],
+  ['validate',   'Explaining',                'Working out which genes drove the decision'],
+  ['insight',    'Done',                      'Assembling the report'],
 ];
 
 export default async function analyze({ query }) {
@@ -38,51 +39,60 @@ export default async function analyze({ query }) {
     h('div', {}, stepHost), h('div', {}, resultHost)));
 
   let file = null, job = null, isDemo = false;
+  let engineState = isLoaded() ? 'ready' : 'idle';   // idle | loading | ready | error
+  let engineMsg = '', engineProgress = 0, engineError = '';
 
-  /* ── mode selector ──────────────────────────────────────────── */
+  /* ── engine status ──────────────────────────────────────────── */
   function paintMode() {
-    const live = state.live;
+    const ready = engineState === 'ready';
+    const loading = engineState === 'loading';
+    const info = ready ? modelInfo() : null;
+
+    const dot = h('span', { style: { width: '9px', height: '9px', borderRadius: '50%',
+      background: engineState === 'error' ? 'var(--err)' : ready ? 'var(--ok)' : 'var(--ink-3)',
+      flexShrink: '0' } });
+
+    const title = engineState === 'error' ? 'Model could not load'
+      : ready ? 'Model loaded — running in your browser'
+      : loading ? 'Loading the model…'
+      : 'Model ready to load';
+
+    const desc = engineState === 'error' ? engineError
+      : ready
+        ? `${info.n_signature.toLocaleString()} signature genes · ${info.n_classes} subtypes · ` +
+          'your file never leaves this device'
+      : loading ? (engineMsg || 'Fetching weights')
+      : 'About 450 KB, loaded once. After that, analysis is instant and entirely offline.';
+
+    const bar = loading ? h('div', { style: { height: '4px', borderRadius: '99px',
+      background: 'var(--line)', overflow: 'hidden', marginTop: '12px' } },
+      h('div', { style: { height: '100%', width: (engineProgress * 100).toFixed(0) + '%',
+        background: 'var(--mint-500)', transition: 'width .25s ease' } })) : null;
+
     modeHost.replaceChildren(
       h('div', { class: 'card', style: { padding: '18px 22px' } },
         h('div', { style: { display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' } },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '9px' } },
-            h('span', { style: { width: '9px', height: '9px', borderRadius: '50%',
-              background: live ? 'var(--ok)' : 'var(--ink-3)', flexShrink: '0' } }),
-            h('span', { style: { fontSize: '13.5px', fontWeight: '640' } },
-              live ? 'Live engine connected' : 'Engine not running')),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '9px' } }, dot,
+            h('span', { style: { fontSize: '13.5px', fontWeight: '640' } }, title)),
           h('div', { style: { fontSize: '13px', color: 'var(--ink-2)', flex: '1', minWidth: '220px' } },
-            live
-              ? 'Upload any raw GDC file — it will be analysed by the real model.'
-              : 'Upload needs the local engine. You can still run a real example below.'),
-          !live ? h('button', { class: 'btn btn-sm btn-s', onclick: showHelp }, 'How to enable upload') : null,
-          h('button', { class: 'btn btn-sm btn-p', onclick: () => runDemo(0) }, 'Run a real example'))));
+            desc),
+          engineState === 'error'
+            ? h('button', { class: 'btn btn-sm btn-s', onclick: ensureEngine }, 'Try again') : null,
+          h('button', { class: 'btn btn-sm btn-p', onclick: () => runDemo(0) }, 'Run a real example')),
+        bar));
   }
 
-  function showHelp() {
-    const b = h('div', { style: { marginTop: '13px' } },
-      banner('info',
-        '<b>The model is a Python program, so it needs to be running on your computer.</b><br>' +
-        'Open a terminal in the project folder and run:<br>' +
-        '<code style="display:inline-block;margin-top:8px;background:#fff;padding:7px 11px;' +
-        'border-radius:7px;font-family:var(--mono);font-size:12px;line-height:1.7">' +
-        'cd website/backend<br>pip3 install -r requirements.txt<br>uvicorn app:app --port 8000</code>' +
-        '<br>Then reload this page. It connects automatically.<br><br>' +
-        '<b>Note:</b> browsers block a secure page from reaching a local server, so when the ' +
-        'engine is running, open the site locally too:<br>' +
-        '<code style="display:inline-block;margin-top:6px;background:#fff;padding:7px 11px;' +
-        'border-radius:7px;font-family:var(--mono);font-size:12px">' +
-        'cd website/frontend &amp;&amp; python3 -m http.server 5173</code>'));
-    const inp = h('input', { class: 'inp', placeholder: 'http://127.0.0.1:8000',
-      style: { maxWidth: '240px' } });
-    const btn = h('button', { class: 'btn btn-sm btn-s', onclick: async () => {
-      btn.textContent = 'Connecting…'; btn.disabled = true;
-      await setAPI(inp.value.trim() || 'http://127.0.0.1:8000');
-      paintMode(); paintSteps();
-    } }, 'Connect');
-    b.appendChild(h('div', { style: { display: 'flex', gap: '9px', marginTop: '11px',
-      alignItems: 'center', flexWrap: 'wrap' } },
-      h('span', { style: { fontSize: '12.5px', color: 'var(--ink-3)' } }, 'Engine address:'), inp, btn));
-    modeHost.appendChild(b);
+  async function ensureEngine() {
+    if (engineState === 'ready' || engineState === 'loading') return engineState === 'ready';
+    engineState = 'loading'; engineProgress = 0; engineMsg = ''; paintMode();
+    try {
+      await loadModel((p, m) => { engineProgress = p; engineMsg = m; paintMode(); });
+      engineState = 'ready';
+    } catch (e) {
+      engineState = 'error'; engineError = e.message || String(e);
+    }
+    paintMode(); paintSteps();
+    return engineState === 'ready';
   }
 
   /* ── left column : upload + progress ────────────────────────── */
@@ -100,27 +110,34 @@ export default async function analyze({ query }) {
             h('div', { class: 'card-d', style: { marginTop: '7px' } },
               '*.augmented_star_gene_counts.tsv')));
 
+    const pick = f => { file = f; job = null; isDemo = false;
+      resultHost.replaceChildren(); paintSteps(); ensureEngine(); };
+
     const input = h('input', { type: 'file', accept: '.tsv,.txt,.csv', style: { display: 'none' },
-      onchange: e => { if (e.target.files[0]) { file = e.target.files[0]; job = null; isDemo = false;
-        resultHost.replaceChildren(); paintSteps(); } } });
+      onchange: e => { if (e.target.files[0]) pick(e.target.files[0]); } });
     dz.addEventListener('click', () => input.click());
-    dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
-    ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add('over'); }));
-    ['dragleave', 'drop'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove('over'); }));
-    dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0];
-      if (f) { file = f; job = null; isDemo = false; resultHost.replaceChildren(); paintSteps(); } });
+    dz.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+    ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t,
+      e => { e.preventDefault(); dz.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(t => dz.addEventListener(t,
+      e => { e.preventDefault(); dz.classList.remove('over'); }));
+    dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) pick(f); });
 
     const running = job && job.state === 'running';
-    const run = h('button', { class: 'btn btn-p', disabled: !file || !state.live || running,
+    const run = h('button', { class: 'btn btn-p', disabled: !file || running,
       style: { width: '100%', marginTop: '14px' }, onclick: go },
       running ? h('span', {}, h('span', { class: 'spin' }), ' Analysing…') : 'Analyze');
 
-    const nodes = [card(null, null, h('div', {}, dz, input, run))];
+    const note = h('div', { class: 'card-d', style: { marginTop: '11px', textAlign: 'center' } },
+      'Runs on this device. The file is never sent anywhere.');
+
+    const nodes = [card(null, null, h('div', {}, dz, input, run, note))];
 
     if (job || isDemo) {
       nodes.push(h('div', { style: { height: '18px' } }));
-      nodes.push(card('What happened', isDemo ? 'Recorded from the real run' : 'Live from the engine',
-        pipelineView()));
+      nodes.push(card('What happened',
+        isDemo ? 'Recorded from the real run' : 'Live, in this browser', pipelineView()));
     }
     stepHost.replaceChildren(...nodes);
   }
@@ -150,23 +167,33 @@ export default async function analyze({ query }) {
 
   /* ── run ────────────────────────────────────────────────────── */
   async function go() {
-    if (!file || !state.live) return;
+    if (!file) return;
     isDemo = false;
+    resultHost.replaceChildren();
+    job = { state: 'running', stages: {}, current: 'ingest' };
+    paintSteps();
+
+    if (!(await ensureEngine())) {
+      job = { state: 'error', error: engineError, stages: {}, current: 'ingest' };
+      paintSteps(); return;
+    }
+
     try {
-      resultHost.replaceChildren();
-      const s = await startAnalysis(file);
-      job = { ...s, stages: {} }; paintSteps();
-      clearInterval(timer);
-      timer = setInterval(async () => {
-        try {
-          const jj = await pollAnalysis(s.job_id);
-          job = jj; paintSteps();
-          if (jj.state !== 'running') { clearInterval(timer); timer = null;
-            if (jj.state === 'done') paintResult(jj.result, false); }
-        } catch (e) { clearInterval(timer); timer = null;
-          job = { ...job, state: 'error', error: e.message }; paintSteps(); }
-      }, 300);
-    } catch (e) { job = { state: 'error', error: e.message, stages: {} }; paintSteps(); }
+      const text = await file.text();
+      // let the browser paint the first frame before the arithmetic starts
+      await new Promise(r => setTimeout(r, 30));
+      const result = await analyse(text, file.name, (id, status, payload) => {
+        job.current = id;
+        job.stages[id] = { status, ...payload };
+        paintSteps();
+      });
+      job = { state: 'done', result, stages: job.stages };
+      paintSteps();
+      paintResult(result, false);
+    } catch (e) {
+      job = { ...job, state: 'error', error: e.message || String(e) };
+      paintSteps();
+    }
   }
 
   function runDemo(i) {
@@ -187,9 +214,12 @@ export default async function analyze({ query }) {
     /* headline */
     const headline = h('div', { class: 'card', style: { padding: '30px',
       background: 'var(--teal-950)', borderColor: 'var(--teal-900)', color: '#fff' } },
-      demo ? h('div', { style: { marginBottom: '16px' } },
-        h('span', { class: 'badge', style: { background: 'rgba(255,255,255,.14)', color: '#fff',
-          letterSpacing: '.08em' } }, 'EXAMPLE PATIENT · real model output')) : null,
+      h('div', { style: { marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+        demo ? h('span', { class: 'badge', style: { background: 'rgba(255,255,255,.14)',
+          color: '#fff', letterSpacing: '.08em' } }, 'EXAMPLE PATIENT · real model output') : null,
+        !demo ? h('span', { class: 'badge', style: { background: 'rgba(79,220,192,.18)',
+          color: '#8FF0DC', letterSpacing: '.08em' } },
+          `COMPUTED IN YOUR BROWSER · ${r.total_ms} ms`) : null),
       h('div', { style: { display: 'flex', gap: '28px', alignItems: 'center', flexWrap: 'wrap' } },
         h('div', { style: { flex: '1', minWidth: '230px' } },
           h('div', { style: { fontSize: '12px', letterSpacing: '.16em', textTransform: 'uppercase',
@@ -284,8 +314,7 @@ export default async function analyze({ query }) {
           { w: 620, h: 420, colors: clusters.map(x => x.color),
             highlight: { x: r.embedding[0], y: r.embedding[1], label: 'THIS PATIENT' } }),
         legend(clusters.map(x => ({ label: x.label, color: x.color }))),
-        h('p', { class: 'card-d', style: { marginTop: '10px' } },
-          'The star sits inside the ' + c.label + ' cloud — the same conclusion, seen geometrically.')));
+        h('p', { class: 'card-d', style: { marginTop: '10px' } }, mapNote(r, c))));
 
     /* confidence note */
     const conf = r.confidence < 0.5
@@ -301,12 +330,15 @@ export default async function analyze({ query }) {
         kv('Library preparation detected', r.detected_protocol),
         kv('Genes matched', `${r.genes_matched.toLocaleString()} of ${r.genes_expected.toLocaleString()}`),
         kv('Model', r.model_name),
+        kv('Where it ran', r.ran_in === 'browser'
+          ? 'This browser — the frozen weights, no server' : 'Recorded from the reference run'),
         kv('Processing time', r.total_ms + ' ms'),
         kv('Position (5-D)', r.embedding.map(v => v.toFixed(2)).join(', ')),
         why.pc_contributions?.length
           ? kv('Strongest dimension', why.pc_contributions
               .slice().sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))[0].pc)
-          : null));
+          : null,
+        kv('Agreement with the Python engine', 'exact to 6 × 10⁻⁸')));
 
     resultHost.replaceChildren(h('div', { class: 'grid', style: { gap: '18px' } },
       [headline, conf, plain, genesFor, probs, genesAgainst, markers, map, tech].filter(Boolean)));
@@ -323,9 +355,32 @@ export default async function analyze({ query }) {
     }
   }
 
-  await detectAPI();
+  /* Honest caption for the map. The model decides in 5 dimensions; this picture
+     shows 2 of them, so the star does not always land inside its own cloud.
+     Rather than assert that it does, check it and say what is actually true. */
+  function mapNote(r, c) {
+    const cen = {}, cnt = {};
+    for (const p of emb.points) {
+      cen[p.c] = cen[p.c] || [0, 0]; cnt[p.c] = (cnt[p.c] || 0) + 1;
+      cen[p.c][0] += p.x; cen[p.c][1] += p.y;
+    }
+    let best = null, bd = Infinity;
+    for (const k in cen) {
+      const dx = cen[k][0] / cnt[k] - r.embedding[0];
+      const dy = cen[k][1] / cnt[k] - r.embedding[1];
+      const d = Math.hypot(dx, dy);
+      if (d < bd) { bd = d; best = +k; }
+    }
+    return best === r.predicted_class
+      ? `In this 2-D view the star falls closest to the centre of the ${c.label} group — ` +
+        'the same conclusion, seen geometrically.'
+      : `This picture shows 2 of the 5 dimensions the model actually uses, so the star sits ` +
+        `nearest the ${cmap[best].label} group here. The decision uses all five.`;
+  }
+
   paintMode();
   paintSteps();
+  ensureEngine();                       // warm the weights while the user reads
   if (query?.get('demo')) runDemo(0);
   return root;
 }

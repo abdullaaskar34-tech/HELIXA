@@ -1,8 +1,7 @@
 /* HELIXA — application shell & router
    KBU-MedLab · Turning Genomics into Decisions                              */
 
-import { detectAPI, state } from './api.js';
-import { loader, errorBox } from './ui.js';
+import { loader, errorBox } from './ui.js?v=20260815a';
 
 /* ─────────────────────────────────────────── intro animation */
 function introCanvas(cv, { density = 0.00011, tint = '18,180,143' } = {}) {
@@ -67,8 +66,8 @@ let stopIntro = null;
 
 /* ─────────────────────────────────────────── router */
 const routes = {
-  '/':        () => import('./views/home.js'),
-  '/analyze': () => import('./views/analyze.js'),
+  '/':        () => import('./views/home.js?v=20260815a'),
+  '/analyze': () => import('./views/analyze.js?v=20260815a'),
 };
 
 function parseHash() {
@@ -144,11 +143,7 @@ function boot() {
   addEventListener('hashchange', render);
   render();
 
-  detectAPI().then(() => {
-    document.dispatchEvent(new CustomEvent('helixa:api', { detail: state }));
-    if (!state.live) console.info('[HELIXA] No inference API reachable — static science mode.');
-    else console.info('[HELIXA] Live inference engine connected at', state.api);
-  });
+  console.info('[HELIXA] The classifier runs in this browser — no server involved.');
 }
 
 if (document.readyState === 'loading') addEventListener('DOMContentLoaded', boot);
