@@ -1,0 +1,388 @@
+================================================================================
+  biomerker_engine — FINDING A DRUG TARGET FOR EACH GLIOBLASTOMA SUBTYPE
+  KBU-MedLab · TEKNOFEST Oncology 3T
+================================================================================
+
+WHAT THIS FOLDER CONTAINS, IN ONE PARAGRAPH
+-------------------------------------------
+For each of the six molecular subtypes, a ranked list of genes that satisfy
+three conditions at once: the gene identifies that subtype in real patients,
+a glioblastoma cell dies without it, and a normal cell does not. Every gene
+was then looked up in the published literature one at a time, and what came
+back — including the bad news — is written next to it with the source URL.
+Nothing is deployed to the website. The deliverables are Excel files, figures
+and this document.
+
+
+--------------------------------------------------------------------------------
+  START HERE: WHY THE FIRST ATTEMPT FAILED
+--------------------------------------------------------------------------------
+
+You already tried this once, in Druggable_Candidates_sonstage. It took the
+marker genes of each subtype and asked DepMap "is this gene essential?".
+265 genes went in. Ten came out. The MTC subtype got zero.
+
+Those ten were POLR2L, POLR2F, RPLP1, RPL28, PPA1, PCBP2, NSF, MOB4, IFITM3
+and C19orf53 — RNA polymerase subunits, ribosomal proteins, a vesicle-fusion
+ATPase. Look at figure 02 in 04_Plots. For every one of them the green bar and
+the red bar are the same height:
+
+        POLR2L    glioblastoma needs it 1.00    every other cell 1.00
+        NSF       glioblastoma needs it 1.00    every other cell 1.00
+        RPLP1     glioblastoma needs it 0.97    every other cell 0.99
+        PCBP2     glioblastoma needs it 0.94    every other cell 0.98
+
+A drug against POLR2L stops RNA polymerase in the tumour and in the patient's
+heart, kidneys and bone marrow at the same rate. These are not targets. They
+are the price of being alive.
+
+The root cause, in one sentence:
+
+        A MARKER IS NOT A DEPENDENCY, AND ESSENTIAL IS NOT SELECTIVE.
+
+Two separate mistakes were stacked on top of each other. First, "this gene is
+high in this subtype" tells you nothing about whether the tumour needs it.
+Second, "essential" was measured without asking essential COMPARED TO WHAT.
+
+1,329 of the 17,931 measured genes are dependencies in essentially every cell
+line in existence. That is the trap, and it swallowed the first attempt whole.
+
+
+--------------------------------------------------------------------------------
+  THE RESULT, BEFORE THE DETAIL
+--------------------------------------------------------------------------------
+
+  Every subtype produced candidates — including MTC, which came back empty
+  last time.
+
+        25,738 genes measured in the patients
+        16,696 mark at least one subtype (FDR, effect size, specificity)
+           564 are selective glioblastoma dependencies with a real window
+           359 satisfy BOTH conditions
+            61 top candidates checked against the literature, one at a time
+            17 have published support AND a drug that exists somewhere
+             5 were THROWN OUT because the literature said the biology
+               points the wrong way
+
+  The top-ranked candidates of each subtype, with their tier in brackets:
+
+        MTC     RPP25L(2)  ATP5MC1(1)  SCNM1(2)   NUDT16L1(2)
+        PN      VRK1(1)    PTK2(1)     KIF18B(2)  E2F3(2)   KIF2C(2)
+        CL      FERMT2(2)  FGFR1(1)    CDK6(1)    BRAT1(1)
+        MES     ITGB5(1)   ARPC2(1)    WWTR1(1)   FOSL1(1)  RHOA(1)  ACTR3(1)
+        INT     LARP1(1)   PARN(2)     SEC62(1)   POT1(2)
+        OLIGO   C1QTNF4(3) PISD(2)     HAPLN2(2)  ATXN7L3(1)
+
+  MES is the strongest panel by a distance: its top six are all tier 1. OLIGO
+  is the weakest — its best-ranked gene is a tier 3 hypothesis, and two of its
+  entries are mitochondrial genes flagged as belonging to MTC instead.
+
+  Three of these already have APPROVED drugs, in other cancers:
+        CDK6   palbociclib, ribociclib, abemaciclib
+        FGFR1  pemigatinib
+        PTK2   defactinib (FDA accelerated approval, May 2025)
+
+  And two have drugs that ALREADY FAILED in glioblastoma trials. That is on
+  their row too, because leaving it out would be dishonest:
+        ITGB5  cilengitide missed its primary endpoint in phase III (CENTRIC)
+        CDK6   palbociclib was terminated for futility in recurrent GBM
+
+
+--------------------------------------------------------------------------------
+  STEP 1 · WHAT EACH SUBTYPE SWITCHES ON        (01_Engine/01_patient_side.py)
+--------------------------------------------------------------------------------
+
+Data: the 328 real GDC patients, corrected exactly the way the classifier
+corrects a new patient — filtered to the 25,738 retained genes, renormalised
+to a 1,000,000 budget, log2, then z-scored against the stored mean and SD of
+the patient's own library protocol. Residual batch signal afterwards: 0.0000.
+
+Discovery uses only the 273 CORE patients. Boundary patients sit between
+subtypes by definition, so including them blurs exactly the contrast being
+measured. All 328 are used in the figures.
+
+For each subtype, that subtype against the other five:
+    · Welch t-test, Benjamini-Hochberg FDR
+    · Cohen's d — with 26 to 57 patients per group a tiny difference can be
+      highly significant and still meaningless
+    · SPECIFICITY MARGIN, which is the column that does the real work:
+      the gene's mean in this subtype minus its mean in the BEST of the other
+      five, not their average. A gene high in three subtypes at once is not a
+      biomarker for any of them.
+
+Genes passing FDR < 0.05, d > 0.5 and margin > 0.15 z:
+
+        MTC   1,838      PN   9,984      CL   3,070
+        MES   2,389      INT 11,391      OLIGO 3,083
+
+Those numbers are large, and that is the point: expression alone cannot narrow
+anything down. Step 2 is what makes the list short.
+
+
+--------------------------------------------------------------------------------
+  STEP 2 · WHAT A GLIOBLASTOMA CANNOT LIVE WITHOUT
+                                             (01_Engine/02_dependency_side.py)
+--------------------------------------------------------------------------------
+
+Completely different data, from a completely different experiment. DepMap has
+knocked out every gene in every one of 1,208 human cancer cell lines with
+CRISPR and recorded whether the line died. Among them:
+
+        53 glioblastoma / gliosarcoma lines      <- the tumour
+        1,118 lines from outside the brain       <- the control
+
+Three numbers per gene, and the second one is the whole idea:
+
+  1  DEPENDENCY        mean score across the 53 glioblastoma lines
+  2  THERAPEUTIC WINDOW  the same across the 1,118 non-brain lines.
+                       A real target is HIGH in (1) and LOW in (2).
+  3  HETEROGENEITY     the spread across the glioblastoma lines. A gene every
+                       glioblastoma needs equally cannot be a SUBTYPE marker.
+                       A gene some lines cannot live without while others
+                       shrug is exactly the shape a subtype-specific
+                       vulnerability has.
+
+Figure 03 plots all 17,931 genes on axes (1) and (2). The diagonal is the line
+of no therapeutic window. The red cloud in the top-right corner is the 1,329
+pan-essential genes: needed by everything, useful against nothing. The first
+attempt was fishing in that corner.
+
+Result: 564 genes are selective glioblastoma dependencies with a real window
+and meaningful variation between lines.
+
+A BUG THAT THIS DOCUMENT WOULD BE DISHONEST TO OMIT
+    The first version of this step counted a gene as "not dependent" in cell
+    lines where it had never been measured. 744 of the genes were screened in
+    fewer than half the panel, so pan-essential genes looked selective. NPM1
+    read as 27% dependent when its true figure is 85%, and it reached the
+    candidate list. It was caught by noticing that its mean score (0.90) and
+    its dependent-fraction (0.27) could not both be true. The statistics were
+    recomputed over measured lines only, a minimum of 100 measured lines was
+    imposed, and a second gate (mean dependency outside the brain below 0.60)
+    was added. NPM1 no longer appears.
+
+
+--------------------------------------------------------------------------------
+  STEP 3 · THE INTERSECTION                        (01_Engine/03_intersect.py)
+--------------------------------------------------------------------------------
+
+Keep only genes that pass BOTH tests. 359 survive.
+
+Ranking uses the GEOMETRIC mean of an identity score and a survival score, not
+the arithmetic mean, precisely because the geometric mean punishes imbalance
+instead of averaging it away. A spectacular marker with a feeble dependency,
+and a beautiful dependency shared by every subtype, both sink.
+
+For comparison: 1,208 genes pass the identity test and are simply "essential"
+with no therapeutic-window filter. That is roughly the number the first
+attempt was working with, and most of them are pan-essential.
+
+
+--------------------------------------------------------------------------------
+  STEP 4 · WHAT THE LITERATURE SAYS       (01_Engine/04_integrate_and_excel.py)
+--------------------------------------------------------------------------------
+
+The first three steps are arithmetic. Arithmetic does not know that a gene is
+a tumour suppressor.
+
+The top 10 of every subtype — 61 genes — were each looked up individually in
+PubMed, the Human Protein Atlas, Open Targets, DrugBank and ClinicalTrials.gov.
+288 source URLs are recorded. The verdicts:
+
+        STRONG    12    published glioblastoma evidence AND matching biology
+        MODERATE  25    cancer evidence, plausible biology
+        WEAK      18    little or no published support
+        NOVEL      7    essentially unstudied — interesting, unproven
+
+That check changed three things, and they matter more than the ranking.
+
+  1  FIVE GENES POINT THE WRONG WAY, AND WERE THROWN OUT
+
+     PRKAR1A   tumour suppressor. Inactivating mutations cause Carney complex.
+     APC       tumour suppressor. It DEGRADES beta-catenin and switches Wnt
+               OFF. Inhibiting it would switch Wnt ON.
+     RPL41     tumour suppressor, deleted in ~59% of tumour cell lines — and
+               a 2025 in vivo CRISPR screen found it IS required for normal
+               tissue to proliferate, overturning its old "nonessential"
+               label. It passed every statistical gate. Only reading the
+               literature caught it.
+     BNIP1     behaves as a tumour suppressor in the one functional study.
+     DCTN1     in low-grade glioma, HIGH expression predicts BETTER survival.
+
+     PRKAR1A was ranked FIRST in the INT panel on the numbers alone. If this
+     project had shipped a statistics-only pipeline, its headline INT target
+     would have been a gene whose inhibition helps the tumour.
+
+  2  THREE MITOCHONDRIAL GENES LANDED IN THE WRONG SUBTYPE
+     PISD, SLC25A28 and NDUFAF3 are mitochondrial proteins that surfaced in
+     the OLIGO (neural/myelin) panel. Their biology fits MTC. They are flagged
+     in a "Flag" column rather than quietly deleted, because it is a genuine
+     limitation of ranking on expression: a gene can be statistically specific
+     to a subtype whose biology it has nothing to do with.
+
+  3  SOME DRUGS ALREADY EXIST — AND SOME ALREADY FAILED
+     Recorded on the same row as the target. See the table above.
+
+  A CORRECTION MADE WHILE BUILDING THIS
+     An early version guessed drug status from keywords anywhere in the
+     evidence text. It labelled PARN "approved" when PARN's own entry ends
+     "Approval status: preclinical / none known", and read "no known ligands,
+     drugs or tool compounds" as evidence that a tool compound exists.
+     Overclaiming a drug is the worst error this file could contain, so the
+     rule was rewritten to take only the explicit status clause the literature
+     check wrote, and to claim LESS whenever the wording is ambiguous. After
+     the fix, exactly 3 genes claim an approved drug and 40 claim none at all.
+
+FINAL TIERS
+    TIER 1 · ACTIONABLE   17   both data gates, published support, a drug
+                               that exists, not a tumour suppressor
+    TIER 2 · CREDIBLE     18   both data gates and published support,
+                               no drug yet
+    TIER 3 · HYPOTHESIS   21   both data gates, thin literature. Real
+                               findings, unproven.
+    EXCLUDED               5   the biology points the wrong way
+
+
+--------------------------------------------------------------------------------
+  WHY THE RESULTS ARE BIOLOGICALLY CREDIBLE
+--------------------------------------------------------------------------------
+
+The strongest argument that this pipeline works is not any single number. It
+is that the genes it returns match the subtypes they were assigned to, without
+anyone telling it to.
+
+  MES came back with ITGB5, ARPC2, ACTR3, TLN1, RHOA, WWTR1, FOSL1 — integrins,
+  the Arp2/3 actin-branching complex, talin, RhoA, TAZ and Fra-1. That is the
+  adhesion / cytoskeleton / invasion / Hippo axis, which IS the mesenchymal
+  programme. Two of them are the canonical published drivers: Bhat et al.
+  established TAZ (WWTR1) as the mesenchymal driver in glioma, and Marques et
+  al. tied FOSL1 to the NF1-loss axis that defines the subtype. ITGB5 was
+  reported in 2019 as "specific to the mesenchymal subtype" in its own right.
+
+  PN came back with KIF18B, KIF2C, VRK1, MCM10, E2F3 — mitotic kinesins, a
+  cell-cycle kinase, a replication licensing factor and an E2F transcription
+  factor. A proliferating progenitor programme, which is what "proneural
+  progenitor" means.
+
+  CL came back with FGFR1 and CDK6. Classical glioblastoma is defined by
+  receptor-tyrosine-kinase signalling and CDKN2A loss, and CDK4/6 amplification
+  is a known feature of it.
+
+  OLIGO came back with HAPLN2 and ANLN. HAPLN2 builds the extracellular matrix
+  at the nodes of Ranvier in myelinated fibres. ANLN is enriched in mature
+  myelinating oligodendrocytes, and knocking it out there causes myelin
+  outfoldings. Both are textbook myelin genes.
+
+  MTC came back with ATP5MC1, a subunit of mitochondrial ATP synthase — the
+  terminal enzyme of oxidative phosphorylation, in the OXPHOS subtype.
+
+None of this was engineered. The engine never saw a pathway name.
+
+The single best individual finding is RPP25L in MTC. A 2022 Society for
+Neuro-Oncology report describes glioblastomas that silence RPP25 by promoter
+hypermethylation becoming dependent on its paralog RPP25L, with cell lines
+lacking RPP25 showing "a rapid reduction in viability upon RPP25L loss",
+confirmed in patient-derived neurospheres. That is a published, glioblastoma-
+specific synthetic lethality — the same class of target as PRMT5/MTAP — and
+this pipeline surfaced it independently.
+
+
+--------------------------------------------------------------------------------
+  WHAT THIS IS NOT — READ THIS BEFORE PRESENTING ANY OF IT
+--------------------------------------------------------------------------------
+
+  · These are CANDIDATES, not treatments. Nothing here has been tested in a
+    laboratory by this project.
+
+  · The dependency data come from CELL LINES, not from patients. Cell lines
+    lose the immune system, the blood-brain barrier and the tumour
+    microenvironment. A mesenchymal target that depends on macrophage
+    infiltration cannot show its true importance in a dish at all — which is a
+    specific reason the MES panel may be understated.
+
+  · The subtype assignment of the cell lines was NOT used, because DepMap
+    expression data was not available. So this measures "glioblastoma-selective"
+    dependency, not "MTC-selective" or "MES-selective" dependency. The
+    subtype link comes from the patient side only. Downloading
+    OmicsExpressionProteinCodingGenesTPMLogp1.csv from depmap.org would let the
+    53 glioblastoma lines be classified with our own model and turn this into a
+    direct per-subtype dependency test. That is the single biggest available
+    upgrade.
+
+  · 40 of the 61 checked genes have NO known drug. A target without a molecule
+    is a research programme, not a therapy.
+
+  · Two named drugs against targets on this list have already failed in
+    glioblastoma trials.
+
+
+--------------------------------------------------------------------------------
+  WHAT IS IN THE FOLDER
+--------------------------------------------------------------------------------
+
+  01_Engine/
+      01_patient_side.py        which genes mark each subtype
+      02_dependency_side.py     which genes glioblastoma dies without
+      03_intersect.py           the overlap, scored
+      04_integrate_and_excel.py the literature check folded in, Excel written
+      05_plots.py               the ten figures
+
+  02_Panels_Excel/              THE MAIN DELIVERABLE
+      MASTER_all_subtypes.xlsx  summary + one sheet per subtype + a legend.
+                                The summary counts are live Excel formulas.
+      0_MTC ... 5_OLIGO_biomarker_targets.xlsx
+                                one workbook per subtype, 22 columns each,
+                                including every literature quotation and every
+                                source URL
+
+  03_Evidence/
+      literature_evidence.json  all 62 gene write-ups, verbatim
+      literature_evidence.csv   the same, as a table
+
+  04_Plots/                     ten figures, each with its own caption
+      01 the funnel — 25,738 genes down to a handful
+      02 the pan-essential trap — why the first attempt failed
+      03 every gene on two axes — tumour need vs normal-tissue need
+      04 what each subtype came back with
+      05 both tests at once, per subtype
+      06 expression heatmap of the top targets across all 328 patients
+      07 per-line dependency — each dot is one glioblastoma cell line
+      08 what the literature actually said
+      09 volcano per subtype, with the final targets circled
+      10 the strongest candidates, ranked
+
+  05_Tables/
+      final_targets.csv                     the scored, tiered result
+      candidates_all.csv                    all 359 that passed both gates
+      dependency_side_depmap.csv            all 17,931 genes, DepMap side
+      patient_side_differential_expression.csv.gz   all 154,428 gene x subtype rows
+      previous_attempt_reexamined.csv       the old ten, with the window shown
+      z_matrix.npy, gene_index.csv, patients.csv, class_mean_z.npy
+
+
+--------------------------------------------------------------------------------
+  HOW TO REPRODUCE
+--------------------------------------------------------------------------------
+
+    cd 01_Engine
+    python3 01_patient_side.py
+    python3 02_dependency_side.py
+    python3 03_intersect.py
+    python3 04_integrate_and_excel.py
+    python3 05_plots.py
+
+  Steps 1-3 and 5 are deterministic. Step 4 reads the stored literature file
+  rather than searching again, so it reproduces exactly.
+
+
+--------------------------------------------------------------------------------
+  THE ONE-SENTENCE VERSION
+--------------------------------------------------------------------------------
+
+  For each of the six subtypes, genes that both identify it in real patients
+  and that a glioblastoma cell cannot survive without while normal cells can —
+  17 of them with a drug that already exists, 5 thrown out because the
+  published literature said inhibiting them would help the tumour, and every
+  claim carrying the URL it came from.
+
+================================================================================

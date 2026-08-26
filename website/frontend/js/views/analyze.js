@@ -8,6 +8,7 @@ import { loadAll } from '../api.js?v=20260815a';
 import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260815a';
 import { gauge, barsH, scatter, legend } from '../charts.js?v=20260815a';
 import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260815a';
+import { openPatientReport } from '../report.js?v=20260815a';
 
 export function cleanup() {}
 
@@ -24,7 +25,8 @@ const STAGES = [
 ];
 
 export default async function analyze({ query }) {
-  const [clusters, emb, demos] = await loadAll(['clusters', 'embedding', 'demo_results']);
+  const [clusters, emb, demos, biomarkers] = await loadAll(
+    ['clusters', 'embedding', 'demo_results', 'biomarkers']);
   const cmap = Object.fromEntries(clusters.map(c => [c.id, c]));
 
   const root = h('div', { class: 'wrap section' });
@@ -38,7 +40,7 @@ export default async function analyze({ query }) {
   root.appendChild(h('div', { class: 'an-grid' },
     h('div', {}, stepHost), h('div', {}, resultHost)));
 
-  let file = null, job = null, isDemo = false;
+  let file = null, job = null, isDemo = false, patientLabel = '';
   let engineState = isLoaded() ? 'ready' : 'idle';   // idle | loading | ready | error
   let engineMsg = '', engineProgress = 0, engineError = '';
 
@@ -132,7 +134,11 @@ export default async function analyze({ query }) {
     const note = h('div', { class: 'card-d', style: { marginTop: '11px', textAlign: 'center' } },
       'Runs on this device. The file is never sent anywhere.');
 
-    const nodes = [card(null, null, h('div', {}, dz, input, run, note))];
+    const labelInput = h('input', { class: 'inp', type: 'text', placeholder: 'Patient / sample label (optional, for the report)',
+      value: patientLabel, style: { width: '100%', marginTop: '12px' },
+      oninput: e => { patientLabel = e.target.value; } });
+
+    const nodes = [card(null, null, h('div', {}, dz, input, labelInput, run, note))];
 
     if (job || isDemo) {
       nodes.push(h('div', { style: { height: '18px' } }));
@@ -239,6 +245,48 @@ export default async function analyze({ query }) {
         borderTop: '1px solid rgba(255,255,255,.14)', color: 'rgba(255,255,255,.82)',
         fontSize: '14.5px', lineHeight: '1.7' } }, r.summary));
 
+    /* patient report */
+    const reportRow = h('div', { style: { display: 'flex', justifyContent: 'flex-end' } },
+      h('button', { class: 'btn btn-d btn-sm', onclick: () =>
+        openPatientReport(r, cmap, biomarkers, { patientLabel, fileName: file?.name, isDemo: demo }) },
+        'Download / Print Patient Report'));
+
+    /* biomarkers & drug targets for this subtype */
+    const classKey = String(r.predicted_class);
+    const geneList = (biomarkers?.by_class?.[classKey] || []);
+    const bioSummary = biomarkers?.summary_by_class?.[classKey];
+    const tierKind = t => t.startsWith('TIER 1') ? 'ok' : t.startsWith('TIER 2') ? 'info'
+      : t.startsWith('TIER 3') ? 'warn' : 'err';
+
+    const bioCard = geneList.length ? card(
+      `Biomarkers & drug targets for ${c.label}`,
+      'Genes that mark this subtype in real patients AND that glioblastoma cell lines cannot ' +
+      'survive without while normal tissue can — checked one at a time against the literature',
+      h('div', {},
+        bioSummary ? h('div', { style: { display: 'flex', gap: '9px', flexWrap: 'wrap', marginBottom: '14px' } },
+          badge('ok', `${bioSummary.tier1_actionable} actionable`),
+          badge('info', `${bioSummary.tier2_credible} credible`),
+          badge('warn', `${bioSummary.tier3_hypothesis} hypothesis`),
+          bioSummary.excluded ? badge('err', `${bioSummary.excluded} excluded`) : null) : null,
+        h('div', { class: 'tbl-wrap' },
+          h('table', {},
+            h('thead', {}, h('tr', {},
+              h('th', {}, '#'), h('th', {}, 'Gene'), h('th', {}, 'Tier'), h('th', {}, 'Function'),
+              h('th', {}, 'Drug status'), h('th', {}, 'Score'))),
+            h('tbody', {}, geneList.map(g => h('tr', {},
+              h('td', {}, String(g.rank)),
+              h('td', { class: 'mono', style: { fontWeight: '650' } }, g.gene),
+              h('td', {}, badge(tierKind(g.tier), g.excluded ? 'Excluded' : g.tier)),
+              h('td', { style: { maxWidth: '260px', fontSize: '12.5px' } },
+                g.excluded ? (g.wrong_direction || g.subtype_mismatch || '—') : (g.protein_function || '—')),
+              h('td', { style: { fontSize: '12.5px' } }, g.drug_status || '—'),
+              h('td', {}, g.final_score != null ? g.final_score.toFixed(3) : '—')))))),
+        h('p', { class: 'card-d', style: { marginTop: '12px' } },
+          'Candidates, not treatments — nothing here has been tested in a laboratory. Full ' +
+          'methodology, every literature source and the excluded genes\' reasons are in ' +
+          h('code', {}, 'BIOMARKER_ENGINE/'), ' in the repository, and in the downloadable report above.'))
+    ) : null;
+
     /* plain-language why */
     const top3 = why.top_genes_for.slice(0, 3).map(g => g.gene);
     const share3 = why.top_genes_for.slice(0, 3).reduce((a, g) => a + (g.share_pct || 0), 0);
@@ -341,7 +389,8 @@ export default async function analyze({ query }) {
         kv('Agreement with the Python engine', 'exact to 6 × 10⁻⁸')));
 
     resultHost.replaceChildren(h('div', { class: 'grid', style: { gap: '18px' } },
-      [headline, conf, plain, genesFor, probs, genesAgainst, markers, map, tech].filter(Boolean)));
+      [headline, reportRow, conf, bioCard, plain, genesFor, probs, genesAgainst, markers, map, tech]
+        .filter(Boolean)));
 
     if (demos.length > 1) {
       resultHost.appendChild(h('div', { style: { marginTop: '18px' } },

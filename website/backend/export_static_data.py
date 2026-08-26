@@ -329,5 +329,74 @@ j('project.json', {
     'lines':['Medical Engineering']},
  ]})
 
+# ────────────────────────────────────────────────────── biomarkers & drug targets
+# Reads the biomarker engine's own final output (Stage 5: Evidence Integration &
+# Excel Panels) — see BIOMARKER_ENGINE/ at the repo root for the full six-stage
+# pipeline, every intermediate table, and the literature sources. Nothing is
+# recomputed here; this only reshapes the one already-scored, already-tiered
+# table into the per-class JSON the frontend's biomarker card and patient
+# report both read.
+BIO_ROOT = os.environ.get('HELIXA_BIOMARKER_ENGINE', '../../BIOMARKER_ENGINE')
+SUB = {0: 'MTC', 1: 'PN', 2: 'CL', 3: 'MES', 4: 'INT', 5: 'OLIGO'}
+bio_src = f'{BIO_ROOT}/05_Tables/final_targets.csv'
+if os.path.exists(bio_src):
+    bdf = pd.read_csv(bio_src)
+    by_class, summary = {}, {}
+    for k in range(6):
+        c = bdf[bdf.cluster == k].sort_values('final_rank')
+        genes = []
+        for _, row in c.iterrows():
+            tier_full = str(row['tier'])
+            tier_code = tier_full.split('·')[0].strip() if '·' in tier_full else tier_full.split('-')[0].strip()
+            tier_label = tier_full.split('·', 1)[1].strip() if '·' in tier_full else tier_full
+            excluded = tier_full.startswith('EXCLUDED')
+            sources = row.get('sources_joined')
+            sources_list = [s.strip() for s in sources.split('|')] if isinstance(sources, str) and sources else []
+            genes.append({
+                'gene': row['gene'], 'gene_id': clean(row.get('gene_id')),
+                'rank': int(row['final_rank']), 'tier': tier_code, 'tier_label': tier_label,
+                'excluded': excluded, 'final_score': clean(row.get('final_score')),
+                'specificity_margin_z': clean(row.get('specificity_margin')),
+                'cohens_d': clean(row.get('cohens_d')), 'fdr': clean(row.get('fdr')),
+                'dep_mean_gbm': clean(row.get('dep_mean_GBM')),
+                'dep_mean_non_cns': clean(row.get('dep_mean_nonCNS')),
+                'therapeutic_window': clean(row.get('therapeutic_window')),
+                'protein_function': clean(row.get('protein_function')),
+                'gbm_evidence': clean(row.get('gbm_evidence')),
+                'subtype_link': clean(row.get('subtype_link')),
+                'cancer_relevance': clean(row.get('cancer_relevance')),
+                'drug_status': clean(row.get('drug_status')), 'drug_detail': clean(row.get('drug_detail')),
+                'verdict': clean(row.get('verdict')), 'wrong_direction': clean(row.get('wrong_direction')),
+                'subtype_mismatch': clean(row.get('subtype_mismatch')), 'sources': sources_list,
+            })
+        by_class[str(k)] = genes
+        summary[str(k)] = {'subtype': SUB[k], 'total_checked': len(genes),
+            'tier1_actionable': sum(1 for g in genes if g['tier'].startswith('TIER 1')),
+            'tier2_credible': sum(1 for g in genes if g['tier'].startswith('TIER 2')),
+            'tier3_hypothesis': sum(1 for g in genes if g['tier'].startswith('TIER 3')),
+            'excluded': sum(1 for g in genes if g['excluded'])}
+    j('biomarkers.json', {
+        'version': '1.0.0',
+        'generated_from': 'BIOMARKER_ENGINE/05_Tables/final_targets.csv (Stage 5: Evidence Integration & Excel Panels)',
+        'methodology': "For each subtype: genes that (1) mark it in 328 real patients (Welch t-test, "
+            "FDR<0.05, Cohen's d>0.5, specificity margin>0.15z), AND (2) a glioblastoma cell line cannot "
+            "survive without while normal-tissue cell lines can (DepMap CRISPR dependency, tier A/B), AND "
+            "(3) were checked one at a time against PubMed, Human Protein Atlas, Open Targets, DrugBank and "
+            "ClinicalTrials.gov. Genes whose biology points the wrong way (e.g. tumour suppressors) are kept "
+            "and shown as EXCLUDED, with the reason, rather than silently removed.",
+        'tiers': {
+            'TIER 1': 'actionable — both data gates passed, published support, a drug against it already exists',
+            'TIER 2': 'credible target, no drug yet — both data gates passed, published support, nothing built against it',
+            'TIER 3': 'hypothesis, little literature — both data gates passed, but the literature is thin',
+            'EXCLUDED': 'wrong therapeutic direction — the gene is a tumour suppressor or its biology '
+                        'contradicts the therapeutic direction; kept visible so the reasoning is auditable',
+        },
+        'disclaimer': 'These are computational candidates from an unpublished research pipeline, not '
+            'treatments. Nothing here has been tested in a laboratory. This is not a clinical recommendation.',
+        'summary_by_class': summary, 'by_class': by_class,
+    })
+else:
+    print(f'  [skip] biomarkers.json — {bio_src} not found (set HELIXA_BIOMARKER_ENGINE)')
+
 print('='*70)
 print('Export complete ->', OUT)
