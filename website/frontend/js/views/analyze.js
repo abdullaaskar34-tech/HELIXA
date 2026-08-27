@@ -177,13 +177,14 @@ export default async function analyze({ query }) {
 
     const modal = h('div', { style: {
       position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
-      background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: '10000', padding: '20px'
+      background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: '999999', padding: '20px'
     }});
 
     const content = h('div', { style: {
       background: 'var(--white)', color: 'var(--ink)', borderRadius: '12px', maxWidth: '620px',
-      maxHeight: '80vh', overflow: 'auto', padding: '30px', boxShadow: '0 20px 60px rgba(0,0,0,.3)'
+      maxHeight: '80vh', overflow: 'auto', padding: '30px', boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+      zIndex: '1000000', position: 'relative'
     }});
 
     const close = () => { document.body.removeChild(modal); };
