@@ -68,7 +68,6 @@ let stopIntro = null;
 const routes = {
   '/':        () => import('./views/home.js?v=20260815a'),
   '/analyze': () => import('./views/analyze.js?v=20260815a'),
-  '/drug-transparency': () => import('./views/drug-transparency.js?v=20260815a'),
 };
 
 function parseHash() {
