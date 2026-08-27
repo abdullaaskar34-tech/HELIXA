@@ -193,7 +193,7 @@ export default async function analyze({ query }) {
             h('div', { style: { fontSize: '13px', color: 'var(--ink-2)', marginBottom: '8px', lineHeight: '1.5' } }, data.description),
             data.count > 0 ? h('a', { href: data.link, target: '_blank', style: {
               color: 'var(--mint-600)', textDecoration: 'none', fontSize: '13px', fontWeight: '600', display: 'inline-block'
-            }}, `View ${data.count} ${source === 'ClinicalTrials.gov' ? 'trials' : 'results'} →') : null)))),
+            }}, `View ${data.count} ${source === 'ClinicalTrials.gov' ? 'trials' : 'results'} →`) : null)))),
 
       drug.timeline?.length ? h('div', { style: { marginBottom: '22px' } },
         h('h3', { style: { fontSize: '14px', fontWeight: '640', marginBottom: '12px' } }, '📅 Research Timeline'),
