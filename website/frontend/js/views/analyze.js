@@ -4,11 +4,11 @@
    is involved, and the arithmetic is the frozen classifier itself — verified
    against the Python engine to 6e-8. See js/engine.js.                       */
 
-import { loadAll } from '../api.js?v=20260815a';
-import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260815a';
-import { gauge, barsH, scatter, legend } from '../charts.js?v=20260815a';
-import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260815a';
-import { openPatientReport } from '../report.js?v=20260815a';
+import { loadAll } from '../api.js?v=20260827a';
+import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260827a';
+import { gauge, barsH, scatter, legend } from '../charts.js?v=20260827a';
+import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260827a';
+import { openPatientReport } from '../report.js?v=20260827a';
 
 
 /* Drug transparency database - maps genes to drug status info */
