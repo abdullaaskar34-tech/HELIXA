@@ -4,11 +4,11 @@
    is involved, and the arithmetic is the frozen classifier itself — verified
    against the Python engine to 6e-8. See js/engine.js.                       */
 
-import { loadAll } from '../api.js?v=20260827a';
-import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260827a';
-import { gauge, barsH, scatter, legend } from '../charts.js?v=20260827a';
-import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260827a';
-import { openPatientReport } from '../report.js?v=20260827a';
+import { loadAll } from '../api.js?v=20260827b';
+import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260827b';
+import { gauge, barsH, scatter, legend } from '../charts.js?v=20260827b';
+import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260827b';
+import { openPatientReport } from '../report.js?v=20260827b';
 
 
 /* Drug transparency database - maps genes to drug status info */
@@ -219,9 +219,11 @@ export default async function analyze({ query }) {
           }},
             h('div', { style: { fontSize: '13px', fontWeight: '640', marginBottom: '6px' } }, source),
             h('div', { style: { fontSize: '13px', color: 'var(--ink-2)', marginBottom: '8px', lineHeight: '1.5' } }, data.description),
-            data.count > 0 ? h('a', { href: data.link, target: '_blank', style: {
+            data.link ? h('a', { href: data.link, target: '_blank', style: {
               color: 'var(--mint-500)', textDecoration: 'none', fontSize: '13px', fontWeight: '600', display: 'inline-block'
-            }}, `View ${data.count} ${source === 'ClinicalTrials.gov' ? 'trials' : 'results'} →`) : null)))),
+            }}, data.count > 0
+              ? `View ${data.count} ${source === 'ClinicalTrials.gov' ? 'trials' : 'results'} →`
+              : 'Search →') : null)))),
 
       drug.timeline?.length ? h('div', { style: { marginBottom: '22px' } },
         h('h3', { style: { fontSize: '14px', fontWeight: '640', marginBottom: '12px' } }, '📅 Research Timeline'),
