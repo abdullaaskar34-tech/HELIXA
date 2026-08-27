@@ -145,8 +145,35 @@ export default async function analyze({ query }) {
 
   /* ── drug transparency modal ───────────────────────────────── */
   function openDrugModal(geneName) {
-    const drug = DRUG_DATABASE[geneName];
-    if (!drug) return;
+    const drug = DRUG_DATABASE[geneName] || {
+      status: 'unknown',
+      title: geneName + ' — Drug Status',
+      sources: {
+        'PubMed': {
+          title: 'Recent Research',
+          description: `Search for ${geneName} in medical literature`,
+          link: `https://pubmed.ncbi.nlm.nih.gov/?term=${geneName}+cancer`,
+          count: 0,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        },
+        'DrugBank': {
+          title: 'Drug Target Database',
+          description: `Check if ${geneName} is a known drug target`,
+          link: 'https://www.drugbank.ca',
+          count: 0,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        },
+        'ClinicalTrials.gov': {
+          title: 'Clinical Trials',
+          description: `Search for trials targeting ${geneName}`,
+          link: `https://clinicaltrials.gov/ct2/results?term=${geneName}`,
+          count: 0,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        }
+      },
+      timeline: [],
+      confidence: 0
+    };
 
     const modal = h('div', { style: {
       position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
