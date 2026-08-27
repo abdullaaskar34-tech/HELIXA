@@ -1,7 +1,7 @@
 /* HELIXA — home: the product, how it works, the team. Deliberately brief. */
-import { loadAll } from '../api.js?v=20260827c';
-import { h, card, section, badge, esc, initials } from '../ui.js?v=20260827c';
-import { introCanvas } from '../app.js?v=20260827c';
+import { loadAll } from '../api.js?v=20260827d';
+import { h, card, section, badge, esc, initials } from '../ui.js?v=20260827d';
+import { introCanvas } from '../app.js?v=20260827d';
 
 let stopBg = null;
 export function cleanup() { stopBg?.(); stopBg = null; }

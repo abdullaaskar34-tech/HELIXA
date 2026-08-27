@@ -131,13 +131,12 @@ When user clicks:
 
 **Why this matters:** Establishes credibility and lets users dive deeper into the literature.
 
-#### Known & Experimental Compounds
-- Tool compounds (research tools, not drugs)
-- Investigational compounds (being tested)
-- Approved drugs (if any)
-- Link to DrugBank for complete drug database
+#### Drugs & Databases
+- Side-by-side search buttons for the specific gene, not generic landing pages:
+  - **DrugBank** (`drugbankLink`) — `drugbank.ca/drugs?q=<GENE>`
+  - **DGIdb** (`dgidbLink`) — the Drug-Gene Interaction Database, `dgidb.org/search?genes=<GENE>`
 
-**Why this matters:** Users see what's actually being tested vs theoretical.
+**Why this matters:** DrugBank and DGIdb overlap but aren't identical — DGIdb aggregates known and potential drug-gene interactions from ~30 source databases, so it often surfaces interactions DrugBank alone doesn't. Giving both means users aren't limited to one curator's view.
 
 #### Safety Considerations
 - Real risks and side effects
@@ -154,6 +153,7 @@ When user clicks:
 - **PubMed:** Medical literature - credibility
 - **ClinicalTrials.gov:** Actual patient trials - real-world evidence
 - **DrugBank:** Drug database - what exists to target it
+- **DGIdb:** Drug-gene interaction database aggregating ~30 sources - broader coverage than DrugBank alone
 - **Gene mechanisms:** Biology - why it matters
 
 No single source tells the whole story. Users need:
@@ -247,7 +247,13 @@ sourced ITGB5-specific data is added.
    - Note count of drug entries
    - List the specific compounds
 
-4. **Confidence Score:**
+4. **DGIdb:**
+   - Go to https://dgidb.org/
+   - Search: `dgidb.org/search?genes=[GENE_NAME]`
+   - Cross-check against DrugBank results — DGIdb often surfaces additional
+     interactions from other source databases
+
+5. **Confidence Score:**
    - 80+: Real clinical trial showing benefit
    - 60-79: Good preclinical data + some clinical testing
    - 40-59: Mechanism clear but limited testing
