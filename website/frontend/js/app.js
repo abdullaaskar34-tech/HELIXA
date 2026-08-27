@@ -1,7 +1,7 @@
 /* HELIXA — application shell & router
    KBU-MedLab · Genomics into Decisions                                      */
 
-import { loader, errorBox } from './ui.js?v=20260827b';
+import { loader, errorBox } from './ui.js?v=20260827c';
 
 /* ─────────────────────────────────────────── intro animation */
 function introCanvas(cv, { density = 0.00011, tint = '18,180,143' } = {}) {
@@ -66,8 +66,8 @@ let stopIntro = null;
 
 /* ─────────────────────────────────────────── router */
 const routes = {
-  '/':        () => import('./views/home.js?v=20260827b'),
-  '/analyze': () => import('./views/analyze.js?v=20260827b'),
+  '/':        () => import('./views/home.js?v=20260827c'),
+  '/analyze': () => import('./views/analyze.js?v=20260827c'),
 };
 
 function parseHash() {
