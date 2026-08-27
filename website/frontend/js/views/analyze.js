@@ -182,7 +182,7 @@ export default async function analyze({ query }) {
     }});
 
     const content = h('div', { style: {
-      background: 'var(--white)', color: 'var(--ink)', borderRadius: '12px', maxWidth: '620px',
+      background: 'var(--bg)', color: 'var(--ink)', borderRadius: '12px', maxWidth: '620px',
       maxHeight: '80vh', overflow: 'auto', padding: '30px', boxShadow: '0 20px 60px rgba(0,0,0,.3)',
       zIndex: '1000000', position: 'relative'
     }});
@@ -215,19 +215,19 @@ export default async function analyze({ query }) {
         h('h3', { style: { fontSize: '14px', fontWeight: '640', marginBottom: '12px' } }, '📚 Sources & Evidence'),
         h('div', { style: { display: 'grid', gap: '14px' } },
           Object.entries(drug.sources).map(([source, data]) => h('div', { style: {
-            background: 'var(--teal-50)', padding: '14px', borderRadius: '8px', borderLeft: '3px solid var(--mint-600)'
+            background: 'var(--surface-2)', padding: '14px', borderRadius: '8px', borderLeft: '3px solid var(--mint-500)'
           }},
             h('div', { style: { fontSize: '13px', fontWeight: '640', marginBottom: '6px' } }, source),
             h('div', { style: { fontSize: '13px', color: 'var(--ink-2)', marginBottom: '8px', lineHeight: '1.5' } }, data.description),
             data.count > 0 ? h('a', { href: data.link, target: '_blank', style: {
-              color: 'var(--mint-600)', textDecoration: 'none', fontSize: '13px', fontWeight: '600', display: 'inline-block'
+              color: 'var(--mint-500)', textDecoration: 'none', fontSize: '13px', fontWeight: '600', display: 'inline-block'
             }}, `View ${data.count} ${source === 'ClinicalTrials.gov' ? 'trials' : 'results'} →`) : null)))),
 
       drug.timeline?.length ? h('div', { style: { marginBottom: '22px' } },
         h('h3', { style: { fontSize: '14px', fontWeight: '640', marginBottom: '12px' } }, '📅 Research Timeline'),
         h('div', { style: { paddingLeft: '12px', borderLeft: '2px solid var(--line)' } },
           drug.timeline.map(t => h('div', { style: { marginBottom: '12px', paddingLeft: '12px', position: 'relative' } },
-            h('div', { style: { position: 'absolute', width: '8px', height: '8px', background: 'var(--mint-600)', borderRadius: '50%',
+            h('div', { style: { position: 'absolute', width: '8px', height: '8px', background: 'var(--mint-500)', borderRadius: '50%',
               top: '6px', left: '-17px' } }),
             h('div', { style: { fontSize: '12px', fontWeight: '640', color: 'var(--ink)' } }, t.year),
             h('div', { style: { fontSize: '13px', color: 'var(--ink-2)', marginTop: '2px' } }, t.event))))) : null));
@@ -472,7 +472,7 @@ export default async function analyze({ query }) {
               h('td', {}, badge(tierKind(g.tier), g.excluded ? 'Excluded' : g.tier)),
               h('td', { style: { maxWidth: '260px', fontSize: '12.5px' } },
                 g.excluded ? (g.wrong_direction || g.subtype_mismatch || '—') : (g.protein_function || '—')),
-              h('td', { style: { fontSize: '12.5px', cursor: g.drug_status ? 'pointer' : 'default' } }, g.drug_status ? h('span', { style: { color: 'var(--mint-600)', fontWeight: '600', textDecoration: 'underline' }, onclick: () => openDrugModal(g.gene) }, g.drug_status + ' →') : '—'),
+              h('td', { style: { fontSize: '12.5px', cursor: g.drug_status ? 'pointer' : 'default' } }, g.drug_status ? h('span', { style: { color: 'var(--mint-500)', fontWeight: '600', textDecoration: 'underline' }, onclick: () => openDrugModal(g.gene) }, g.drug_status + ' →') : '—'),
               h('td', {}, g.final_score != null ? g.final_score.toFixed(3) : '—')))))),
         h('p', { class: 'card-d', style: { marginTop: '12px' } },
           'Candidates, not treatments — nothing here has been tested in a laboratory. Full ' +
