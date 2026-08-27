@@ -76,7 +76,7 @@ Each gene in the COMPREHENSIVE_DB has:
   },
   targets: {
     drugbankCount: 12,
-    drugbankLink: "https://www.drugbank.ca/...",
+    drugbankLink: "https://go.drugbank.com/unearth/q?...",
     compounds: [
       "Drug Name 1 (status)",
       "Drug Name 2 (status)"
@@ -133,8 +133,8 @@ When user clicks:
 
 #### Drugs & Databases
 - Side-by-side search buttons for the specific gene, not generic landing pages:
-  - **DrugBank** (`drugbankLink`) — `drugbank.ca/drugs?q=<GENE>`
-  - **DGIdb** (`dgidbLink`) — the Drug-Gene Interaction Database, `dgidb.org/search?genes=<GENE>`
+  - **DrugBank** (`drugbankLink`) — `go.drugbank.com/unearth/q?searcher=bio_entities&query=<GENE>`
+  - **DGIdb** (`dgidbLink`) — the Drug-Gene Interaction Database, `dgidb.org/results?searchType=gene&searchTerms=<GENE>`
 
 **Why this matters:** DrugBank and DGIdb overlap but aren't identical — DGIdb aggregates known and potential drug-gene interactions from ~30 source databases, so it often surfaces interactions DrugBank alone doesn't. Giving both means users aren't limited to one curator's view.
 
@@ -219,7 +219,7 @@ sourced ITGB5-specific data is added.
   },
   targets: {
     drugbankCount: 5,  // Get from DrugBank search
-    drugbankLink: 'https://www.drugbank.ca/drugs?q=YOUR_GENE',
+    drugbankLink: 'https://go.drugbank.com/unearth/q?searcher=bio_entities&query=YOUR_GENE',
     compounds: ['Drug A (tool compound)', 'Drug B (Phase II)']
   },
   safety: 'Known safety considerations, if any',
@@ -242,14 +242,14 @@ sourced ITGB5-specific data is added.
    - Copy the URL
 
 3. **DrugBank:**
-   - Go to https://www.drugbank.ca/
+   - Go to https://go.drugbank.com/
    - Search for the gene or compound
    - Note count of drug entries
    - List the specific compounds
 
 4. **DGIdb:**
    - Go to https://dgidb.org/
-   - Search: `dgidb.org/search?genes=[GENE_NAME]`
+   - Search: `dgidb.org/results?searchType=gene&searchTerms=[GENE_NAME]`
    - Cross-check against DrugBank results — DGIdb often surfaces additional
      interactions from other source databases
 
