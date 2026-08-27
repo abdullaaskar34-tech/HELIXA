@@ -444,13 +444,7 @@ export default async function analyze({ query }) {
               h('td', {}, badge(tierKind(g.tier), g.excluded ? 'Excluded' : g.tier)),
               h('td', { style: { maxWidth: '260px', fontSize: '12.5px' } },
                 g.excluded ? (g.wrong_direction || g.subtype_mismatch || '—') : (g.protein_function || '—')),
-              h('td', { style: { fontSize: '12.5px', cursor: g.drug_status ? 'pointer' : 'default' } },
-              g.drug_status
-                ? h('span', {
-                    style: { color: 'var(--mint-600)', fontWeight: '600', textDecoration: 'underline' },
-                    onclick: () => openDrugModal(g.gene)
-                  }, g.drug_status + ' →')
-                : '—'),
+              h('td', { style: { fontSize: '12.5px', cursor: g.drug_status ? 'pointer' : 'default' } }, g.drug_status ? h('span', { style: { color: 'var(--mint-600)', fontWeight: '600', textDecoration: 'underline' }, onclick: () => openDrugModal(g.gene) }, g.drug_status + ' →') : '—'),
               h('td', {}, g.final_score != null ? g.final_score.toFixed(3) : '—')))))),
         h('p', { class: 'card-d', style: { marginTop: '12px' } },
           'Candidates, not treatments — nothing here has been tested in a laboratory. Full ' +
