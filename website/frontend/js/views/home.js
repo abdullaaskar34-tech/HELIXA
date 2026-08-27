@@ -17,7 +17,7 @@ export default async function home() {
       h('img', { src: './assets/logos/helixa-logo.png', alt: 'HELIXA',
         style: { height: 'clamp(56px,9vw,92px)', width: 'auto', margin: '0 auto 26px' } }),
       h('div', { class: 'slog', style: { fontSize: 'clamp(19px,2.8vw,28px)', marginTop: '0' } },
-        'Turning Genomics into Decisions'),
+        'Genomics into Decisions'),
       h('p', { class: 'lead', style: { margin: '20px auto 0', textAlign: 'center' } },
         'Give HELIXA one raw RNA-seq file from a glioblastoma patient. It tells you which ' +
         'molecular subtype the tumour belongs to, how confident it is, and — most importantly — ' +

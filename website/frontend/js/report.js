@@ -1,5 +1,5 @@
 /* HELIXA — printable Patient Molecular Report
-   KBU-MedLab · Turning Genomics into Decisions
+   KBU-MedLab · Genomics into Decisions
 
    Builds a fully self-contained report document (classification result +
    the biomarker/drug-target panel for the predicted subtype) and opens it
@@ -251,7 +251,7 @@ export function openPatientReport(result, cmap, bio, meta = {}) {
   </div>
 
   <div class="ft">
-    <div>HELIXA — Turning Genomics into Decisions · KBU-MedLab · TEKNOFEST Oncology 3T</div>
+    <div>HELIXA — Genomics into Decisions · KBU-MedLab · TEKNOFEST Oncology 3T</div>
     <div>kbumedlab@gmail.com</div>
   </div>
 

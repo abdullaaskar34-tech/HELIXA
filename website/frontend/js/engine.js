@@ -1,6 +1,6 @@
 /* ============================================================================
    HELIXA — in-browser inference engine
-   KBU-MedLab · Turning Genomics into Decisions
+   KBU-MedLab · Genomics into Decisions
 
    This is the SAME model that produced every result in this project, running
    in the browser. It is not a re-implementation or an approximation: the

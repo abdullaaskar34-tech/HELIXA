@@ -1,5 +1,5 @@
 /* HELIXA — application shell & router
-   KBU-MedLab · Turning Genomics into Decisions                              */
+   KBU-MedLab · Genomics into Decisions                                      */
 
 import { loader, errorBox } from './ui.js?v=20260815a';
 
