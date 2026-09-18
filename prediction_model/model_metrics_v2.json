@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "C": 0.31622776601683794,
+  "K": 6,
+  "target": "soft_consensus_profile",
+  "trained_on": "all_328_soft_consensus",
+  "n_train": 328,
+  "protocol_threshold": 0.09179467707872391,
+  "core_tau": 0.5,
+  "insample_agreement": 0.9786585365853658,
+  "loo_agreement": 0.9786585365853658,
+  "loo_agreement_core": 0.9963369963369964,
+  "loo_agreement_boundary": 0.8909090909090909,
+  "oof_profile_rmse": 0.07658179273539772,
+  "oof_profile_corr": 0.9656248273454617,
+  "conf_corr_consensus_own": 0.7310927726978441,
+  "mean_confidence": 0.7204639973463717,
+  "median_confidence": 0.737047467933857
+}

@@ -18,9 +18,32 @@
    decision function itself, decomposed.
 
    Verified numerically against the Python engine: agreement to < 1e-5.
+
+   WHAT THE PERCENTAGE MEANS  (changed in v2)
+   ------------------------------------------
+   v1 was trained on the 273 CORE patients only. CORE is defined as the subset
+   the consensus clustering could separate cleanly, so those points are nearly
+   linearly separable in 5-PC space and the softmax saturated: the median
+   reported confidence was 0.9993 and 178 of 328 patients came back at >= 99.9%,
+   including tumours the clustering itself had flagged as ambiguous.
+
+   v2 is trained on all 328 patients against the CONSENSUS PROFILE — the
+   fraction of 1,000 resampled clusterings in which a tumour co-clusters with
+   each subtype. The reported probability therefore measures SUBTYPE STABILITY:
+   "73% CL" means this profile lands in the Classical cluster in about 73% of
+   resampled clusterings. It is not a clinical or diagnostic probability.
+
+   v2 also returns the Verhaak signature scores and the pathway scores, computed
+   from the same z vector, so the browser reproduces the columns recorded for
+   the reference cohort rather than only the classifier output.
    ========================================================================== */
 
 const BASE = './model';
+// Bump whenever the weights change. The .bin files are fetched by URL, so
+// without this a returning visitor keeps the previously cached v1 weights even
+// after a successful deploy — the site would look updated and classify with the
+// old model.
+const MODEL_V = '2.0.0';
 
 let M = null;          // loaded model
 let loading = null;    // in-flight promise
@@ -29,12 +52,12 @@ const f32 = b => new Float32Array(b);
 const i32 = b => new Int32Array(b);
 
 async function fetchBuf(name) {
-  const r = await fetch(`${BASE}/${name}`);
+  const r = await fetch(`${BASE}/${name}?v=${MODEL_V}`);
   if (!r.ok) throw new Error(`model file ${name} missing (${r.status})`);
   return r.arrayBuffer();
 }
 async function fetchTxt(name) {
-  const r = await fetch(`${BASE}/${name}`);
+  const r = await fetch(`${BASE}/${name}?v=${MODEL_V}`);
   if (!r.ok) throw new Error(`model file ${name} missing (${r.status})`);
   return r.text();
 }
@@ -60,11 +83,15 @@ export async function loadModel(onProgress) {
   loading = (async () => {
     const step = (p, m) => onProgress && onProgress(p, m);
     step(0.05, 'Fetching model weights');
-    const [manifest, idsTxt, sigNamesTxt] = await Promise.all([
-      fetch(`${BASE}/manifest.json`).then(r => {
+    const [manifest, idsTxt, sigNamesTxt, geneSets] = await Promise.all([
+      fetch(`${BASE}/manifest.json?v=${MODEL_V}`).then(r => {
         if (!r.ok) throw new Error(`manifest.json missing (${r.status})`); return r.json(); }),
       fetchTxt('gene_ids.txt'),
       fetchTxt('sig_gene_names.txt'),
+      // v2: slot lists for the Verhaak signature and pathway gene sets.
+      // Absent in a v1 model directory, so a missing file is not fatal.
+      fetch(`${BASE}/gene_set_slots.json?v=${MODEL_V}`).then(r => r.ok ? r.json() : null)
+        .catch(() => null),
     ]);
     step(0.35, 'Loading weights');
     const [keepB, npaB, statPosB, bm0B, bm1B, gsdB, sigSlotB, pcaMeanB, pcaCompB, coefB, interB] =
@@ -93,6 +120,8 @@ export async function loadModel(onProgress) {
       pcaComp: f32(pcaCompB),                 // (n_pcs * n_sig), row-major
       coef: f32(coefB),                       // (n_classes * n_pcs), row-major
       intercept: f32(interB),
+      geneSets: geneSets ? Object.fromEntries(
+        Object.entries(geneSets).map(([k, v]) => [k, Int32Array.from(v)])) : null,
     };
     step(1, 'Ready');
     return M;
@@ -217,6 +246,30 @@ export async function analyse(text, filename = 'upload.tsv', onStage) {
     genes_retained: M.manifest.n_keep, genes_removed: n - M.manifest.n_keep,
     ambiguous, warning: ambiguous ? 'protocol fraction close to the decision threshold' : null });
 
+  // 3b · Verhaak signature and pathway scores — plain means of z over each gene
+  //      set, the same definition used to build the reference cohort's columns
+  const setScores = {};
+  if (M.geneSets) {
+    for (const [name, slots] of Object.entries(M.geneSets)) {
+      let acc = 0;
+      for (let i = 0; i < slots.length; i++) acc += z[slots[i]];
+      setScores[name] = slots.length ? acc / slots.length : 0;
+    }
+  }
+  const sigScores = {}, pwScores = {};
+  for (const [k, v] of Object.entries(setScores)) {
+    if (k.startsWith('sig_')) sigScores[k.slice(4)] = +v.toFixed(4);
+    else if (k.startsWith('pw_')) pwScores[k.slice(3)] = +v.toFixed(4);
+  }
+  const vLabels = M.manifest.verhaak_labels || [];
+  let verhaakNearest = null;
+  if (vLabels.length) {
+    let bi = 0;
+    for (let i = 1; i < vLabels.length; i++)
+      if (sigScores[vLabels[i]] > sigScores[vLabels[bi]]) bi = i;
+    verhaakNearest = vLabels[bi];
+  }
+
   // 4 · signature genes
   t = performance.now(); emit('features', 'running');
   const nSig = M.manifest.n_signature;
@@ -260,9 +313,16 @@ export async function analyse(text, filename = 'upload.tsv', onStage) {
   const conf = proba[pred];
   const order = proba.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]);
   const runner = order[1][1];
-  const band = conf >= 0.8 ? 'confident' : conf >= 0.5 ? 'moderate' : 'undecided';
-  mark('confidence', t, { confidence: +conf.toFixed(4), band,
-                          margin: +(proba[pred] - proba[runner]).toFixed(4), runner_up: runner });
+  const margin = proba[pred] - proba[runner];
+  // The clustering itself split CORE from BOUNDARY at a membership margin of
+  // 0.50 (own-cluster consensus minus best-other). The same rule is applied
+  // here so the model's call is on the same scale as the reference cohort.
+  const tau = (M.manifest.core_tau !== undefined) ? M.manifest.core_tau : 0.50;
+  const call = margin >= tau ? 'CORE' : 'BOUNDARY';
+  const band = margin >= tau ? 'stable'
+             : conf >= 0.5 ? 'moderate' : 'intermediate';
+  mark('confidence', t, { confidence: +conf.toFixed(4), band, call,
+                          margin: +margin.toFixed(4), runner_up: runner, tau });
 
   // 8 · explain
   t = performance.now(); emit('validate', 'running');
@@ -312,7 +372,14 @@ export async function analyse(text, filename = 'upload.tsv', onStage) {
     subtype_label: info.label, subtype_title: info.title,
     summary: info.summary, therapeutic_context: info.therapeutic,
     confidence: +conf.toFixed(4), confidence_band: band,
+    margin: +margin.toFixed(4), call, core_tau: tau,
+    runner_up_class: runner,
     probabilities: proba.map(p => +p.toFixed(6)),
+    signature_scores: sigScores, pathway_scores: pwScores,
+    verhaak_nearest: verhaakNearest,
+    probability_meaning: M.manifest.probability_meaning ||
+      'Fraction of resampled clusterings in which this profile co-clusters ' +
+      'with that subtype — subtype stability, not clinical probability.',
     detected_protocol: stages.batch.detected_protocol,
     nonpolyA_fraction: stages.batch.nonpolyA_fraction,
     protocol_ambiguous: ambiguous,
@@ -326,8 +393,20 @@ export async function analyse(text, filename = 'upload.tsv', onStage) {
     stages,
     total_ms: Math.round(performance.now() - t0),
     model_name: M.manifest.model,
-    cv_accuracy: M.manifest.cv_accuracy,
-    roc_auc: M.manifest.roc_auc_ovr,
+    // v2 reports what it actually measured. cv_accuracy / roc_auc_ovr were v1
+    // accuracy-family figures against the clustering's own labels; they are not
+    // the right summary for a model fitted to the consensus profile, so they are
+    // replaced rather than recomputed. Kept as aliases so older consumers that
+    // read r.cv_accuracy still render something truthful instead of undefined.
+    loo_agreement: M.manifest.loo_agreement,
+    loo_agreement_core: M.manifest.loo_agreement_core,
+    loo_agreement_boundary: M.manifest.loo_agreement_boundary,
+    oof_profile_corr: M.manifest.oof_profile_corr,
+    oof_profile_rmse: M.manifest.oof_profile_rmse,
+    n_train: M.manifest.n_train,
+    cv_accuracy: M.manifest.loo_agreement,
+    roc_auc: M.manifest.oof_profile_corr,
+    model_version: M.manifest.version,
     ran_in: 'browser',
   };
 }

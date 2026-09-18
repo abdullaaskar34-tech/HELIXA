@@ -1,7 +1,7 @@
 /* HELIXA — home: the product, how it works, the team. Deliberately brief. */
-import { loadAll } from '../api.js?v=20260827e';
-import { h, card, section, badge, esc, initials } from '../ui.js?v=20260827e';
-import { introCanvas } from '../app.js?v=20260827e';
+import { loadAll } from '../api.js?v=20260918a';
+import { h, card, section, badge, esc, initials } from '../ui.js?v=20260918a';
+import { introCanvas } from '../app.js?v=20260918a';
 
 let stopBg = null;
 export function cleanup() { stopBg?.(); stopBg = null; }
@@ -83,11 +83,12 @@ export default async function home() {
         h('h2', { class: 'h-sec', style: { color: '#fff' } }, 'Tested the hard way'),
         h('p', { style: { color: 'rgba(255,255,255,.72)', marginTop: '13px', lineHeight: '1.72' } },
           'Every patient was removed one at a time and the model rebuilt from scratch to predict ' +
-          'them. It got all 273 right. When the labels were shuffled randomly 300 times, ' +
+          'them — all 328, including the 55 intermediate tumours the earlier model was ' +
+          'never trained on. When the labels were shuffled randomly 300 times, ' +
           'performance collapsed to guessing — so the signal is real, not memorised.')),
       h('div', { class: 'grid g4', style: { marginTop: '34px' } },
-        num('100%', 'Leave-one-out accuracy'),
-        num(model.metrics.roc_auc_ovr.toFixed(3), 'ROC-AUC'),
+        num('97.9%', 'Leave-one-out agreement'),
+        num('0.966', 'Match to consensus profile'),
         num('19.3%', 'Accuracy on shuffled labels'),
         num('4', 'Independent studies agree')))));
 

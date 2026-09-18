@@ -4,7 +4,7 @@
    in js/engine.js and runs in the browser — there is no backend.               */
 
 const DATA = './data';
-const V = '20260815a';
+const V = '20260918a';
 const cache = new Map();
 
 export async function loadJSON(name) {

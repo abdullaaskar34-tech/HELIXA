@@ -27,7 +27,7 @@ the biomarker/drug-target panel for the predicted subtype, and a one-click, self
 **Patient Molecular Report** (logo, classification, biomarkers, technical appendix) that the
 browser turns into a PDF with no server involved.
 
-**Cohort:** 328 glioblastoma patients · **Subtypes discovered:** 6 · **Classifier:** 100% leave-one-out accuracy on 273 high-confidence patients · **Biomarker candidates:** 61 literature-checked genes across the 6 subtypes, 17 of them tier-1 actionable.
+**Cohort:** 328 glioblastoma patients · **Subtypes discovered:** 6 · **Classifier:** 97.9% leave-one-out agreement across all 328 patients, with calibrated subtype-stability probabilities · **Biomarker candidates:** 61 literature-checked genes across the 6 subtypes, 17 of them tier-1 actionable.
 
 ---
 
@@ -167,18 +167,47 @@ service anywhere in the path.
 
 ## Model evaluation
 
+The classifier was rebuilt in September 2026. Version 2 is trained on **all 328
+patients** against the **consensus profile** — the fraction of 1,000 resampled
+clusterings in which a tumour co-clusters with each subtype — rather than on the
+273 clean patients against hard labels. See
+[`prediction_model/`](prediction_model/) for the full write-up.
+
 | Metric | Value |
 |--------|-------|
-| Leave-one-out accuracy (273 core patients, model refit each time) | **100.00%** |
-| Cross-validated accuracy (5-fold × 10 repeats) | 99.89% |
-| Balanced accuracy | 99.91% |
-| ROC-AUC (macro, one-vs-rest) | 1.0000 |
-| Cohen's κ | 0.9955 |
+| Leave-one-out agreement, all 328 patients | **97.87%** |
+| &nbsp;&nbsp;on CORE (n = 273) | 99.63% |
+| &nbsp;&nbsp;on BOUNDARY (n = 55) | 89.09% |
+| Agreement with the consensus profile (out-of-sample, 328 × 6 cells) | **r = 0.9656** |
+| Profile RMSE | 0.0766 |
+| Mean absolute error on the reported percentage | **± 0.113** |
+| Median reported probability | 0.7370 |
 | Permutation null test (300 shuffles) | real 99.63% vs 19.30% random, p = 0.005 |
-| Boundary-tumour agreement (unseen hard cases) | 89.1% |
+| Protocol detector | 99.695% (327/328) |
 
-Eight algorithms were compared; multinomial logistic regression won on balanced accuracy
-**and** consistency across all 50 folds.
+Twelve model families were compared out-of-fold against the consensus profile —
+polynomial expansions, kNN at four neighbourhood sizes, RandomForest and
+ExtraTrees. The plain linear model beat all eleven alternatives, so the residual
+error is irreducible with five principal components rather than a failure to fit.
+
+### What changed from v1, and why
+
+v1 reported a **median confidence of 0.9993**, with 178 of 328 patients at
+≥ 99.9%. It was trained only on the 273 CORE patients — the subset the clustering
+had already separated cleanly — which are nearly linearly separable in 5-PC
+space, so the softmax saturated. The 55 intermediate tumours were excluded
+entirely and the model had never seen ambiguity.
+
+| | v1 | v2 |
+|---|---|---|
+| trained on | 273 CORE | **328 (all)** |
+| median probability | 0.9993 | **0.7370** |
+| patients at ≥ 99.9% | 178 / 328 | **1 / 328** |
+| mean probability on BOUNDARY tumours | 0.774 | **0.474** |
+
+**The percentage now means subtype stability**: "73% CL" means this expression
+profile co-clusters with Classical in about 73% of resampled clusterings. It is
+not a diagnostic probability.
 
 ---
 
@@ -332,10 +361,13 @@ These are stated on the platform itself, not buried here.
 2. **No clinical outcome has been linked.** Survival data has not been analysed, so these
    are molecular groupings — not validated prognostic classes.
 3. **This is a computational classification, not a diagnosis.**
-4. **The classifier's 99–100% figures are expected, not miraculous.** It learns to
-   reproduce labels derived by clustering on this same cohort. The leave-one-out and
-   permutation tests prove there is no leakage — but this measures "the subtype boundaries
-   are cleanly learnable", not clinical diagnostic accuracy.
+4. **Agreement figures measure learnability, not diagnostic accuracy.** The
+   classifier learns to reproduce labels derived by clustering on this same cohort,
+   so those labels are not independent ground truth. The leave-one-out and
+   permutation tests prove there is no leakage — but this measures "the subtype
+   boundaries are cleanly learnable", not clinical diagnostic accuracy. This is
+   also why the reported probability is tied to the consensus profile rather than
+   to the labels: calibrating against the labels would be circular.
 5. **Two subtypes (CL, INT) are only partially supported** by independent sources, and are
    labelled as such everywhere they appear.
 6. **Verhaak 2010 is not an independent validator here** — it was used inside the

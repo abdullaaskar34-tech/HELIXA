@@ -207,7 +207,7 @@ export function openPatientReport(result, cmap, bio, meta = {}) {
       <div class="cls">${esc(c.title.replace(c.label + ' ', ''))}</div>
       <div class="sm">Subtype ${esc(c.label)} · ${esc(String(c.n_patients))} of 328 reference-cohort patients share it</div>
     </div>
-    <div class="conf"><b>${fmtPct(result.confidence, 1)}</b><span>Confidence · ${esc(result.confidence_band)}</span></div>
+    <div class="conf"><b>${fmtPct(result.confidence, 1)}</b><span>Subtype stability · ${esc(result.call || result.confidence_band)}</span></div>
   </div>
   <p style="font-size:12.5px;line-height:1.7;color:var(--ink-2)">${esc(result.summary)}</p>
 
@@ -244,7 +244,11 @@ export function openPatientReport(result, cmap, bio, meta = {}) {
   <div class="appendix">
     <div class="kv"><span>Library preparation detected</span><span><b>${esc(result.detected_protocol)}</b></span></div>
     <div class="kv"><span>Genes matched</span><span><b>${(result.genes_matched||0).toLocaleString()} of ${(result.genes_expected||0).toLocaleString()}</b></span></div>
-    <div class="kv"><span>Model</span><span><b>${esc(result.model_name)}</b> · cross-val accuracy ${fmtPct(result.cv_accuracy,2)} · ROC-AUC ${fmtNum(result.roc_auc,4)}</span></div>
+    <div class="kv"><span>Model</span><span><b>${esc(result.model_name)}</b>${result.model_version ? ' · v' + esc(result.model_version) : ''} · trained on ${esc(String(result.n_train ?? 328))} patients</span></div>
+    <div class="kv"><span>Leave-one-out agreement</span><span>${fmtPct(result.loo_agreement,2)} overall · ${fmtPct(result.loo_agreement_core,2)} core · ${fmtPct(result.loo_agreement_boundary,2)} boundary</span></div>
+    <div class="kv"><span>Agreement with the consensus profile</span><span>r = ${fmtNum(result.oof_profile_corr,4)} out-of-sample</span></div>
+    <div class="kv"><span>Margin to runner-up</span><span><b>${fmtNum(result.margin,4)}</b> · call ${esc(result.call || '—')} (threshold ${fmtNum(result.core_tau ?? 0.5,2)})</span></div>
+    <div class="kv"><span>What the percentage means</span><span>${esc(result.probability_meaning || 'Subtype stability across resampled clusterings, not a clinical probability.')}</span></div>
     <div class="kv"><span>Position in 5-D embedding</span><span class="mono">${(result.embedding||[]).map(v=>v.toFixed(2)).join(', ')}</span></div>
     <div class="kv"><span>Where it ran</span><span>${result.ran_in === 'browser' ? 'This browser — frozen weights, no server' : 'Recorded from the reference run'}</span></div>
     <div class="kv"><span>Processing time</span><span>${esc(String(result.total_ms))} ms</span></div>

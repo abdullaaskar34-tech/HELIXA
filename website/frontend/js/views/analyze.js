@@ -2,13 +2,14 @@
 
    The model runs INSIDE THE BROWSER. Nothing is uploaded anywhere, no server
    is involved, and the arithmetic is the frozen classifier itself — verified
-   against the Python engine to 6e-8. See js/engine.js.                       */
+   against the Python engine to 1.6e-5 across all 328 reference patients.
+   See js/engine.js.                                                          */
 
-import { loadAll } from '../api.js?v=20260827e';
-import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260827e';
-import { gauge, barsH, scatter, legend } from '../charts.js?v=20260827e';
-import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260827e';
-import { openPatientReport } from '../report.js?v=20260827e';
+import { loadAll } from '../api.js?v=20260918a';
+import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260918a';
+import { gauge, barsH, scatter, legend } from '../charts.js?v=20260918a';
+import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260918a';
+import { openPatientReport } from '../report.js?v=20260918a';
 
 
 /* Drug transparency database - maps genes to drug status info */
@@ -352,8 +353,9 @@ export default async function analyze({ query }) {
           h('div', { style: { fontSize: '14px', color: 'rgba(255,255,255,.66)', marginTop: '11px' } },
             `Subtype ${c.label} · ${c.n_patients} of 328 patients in the reference cohort share it`)),
         h('div', { style: { flexShrink: '0' } },
-          gauge(r.confidence, { label: 'Confidence', size: 190, onDark: true,
-            color: r.confidence >= .8 ? '#4FDCC0' : r.confidence >= .5 ? '#E8C35A' : '#E8833A' }))),
+          gauge(r.confidence, { label: 'Subtype stability', size: 190, onDark: true,
+            color: r.call === 'BOUNDARY' ? '#E8833A'
+                 : r.confidence >= .75 ? '#4FDCC0' : '#E8C35A' }))),
       h('p', { style: { marginTop: '20px', paddingTop: '18px',
         borderTop: '1px solid rgba(255,255,255,.14)', color: 'rgba(255,255,255,.82)',
         fontSize: '14.5px', lineHeight: '1.7' } }, r.summary));
@@ -448,7 +450,8 @@ export default async function analyze({ query }) {
       label: cmap[i].label, value: p, color: i === r.predicted_class ? cmap[i].color : '#C2DED6',
       note: cmap[i].title,
     })).sort((a, b) => b.value - a.value);
-    const probs = card('All six subtypes compared', 'How the model scored every option',
+    const probs = card('All six subtypes compared',
+      'How often this profile co-clusters with each subtype across 1,000 resamplings',
       barsH(probBars, { w: 560, rowH: 34, pad: { t: 6, r: 66, b: 24, l: 78 }, max: 1,
         fmt: v => (v * 100).toFixed(1) + '%', label: 'probability' }));
 
@@ -478,10 +481,46 @@ export default async function analyze({ query }) {
         h('p', { class: 'card-d', style: { marginTop: '10px' } }, mapNote(r, c))));
 
     /* confidence note */
-    const conf = r.confidence < 0.5
-      ? banner('warn', '<b>This tumour sits between subtypes.</b> About 17% of glioblastomas ' +
-          'genuinely do. HELIXA reports that instead of forcing a label.')
+    const conf = (r.call === 'BOUNDARY' || r.confidence < 0.5)
+      ? banner('warn', '<b>This tumour sits between subtypes.</b> The margin to the ' +
+          'runner-up is ' + ((r.margin ?? 0)).toFixed(2) + ', below the 0.50 the reference ' +
+          'cohort uses to separate confident calls from intermediate ones. 55 of the 328 ' +
+          'reference tumours (17%) are intermediate in exactly this way — HELIXA reports ' +
+          'that instead of forcing a label.')
       : null;
+
+    /* signature & pathway scores — computed from the same z vector as the call */
+    const scoreRow = (k, v) => {
+      const mag = Math.min(Math.abs(v) / 1.5, 1) * 50;
+      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px',
+        marginBottom: '6px', fontSize: '13px' } },
+        h('div', { style: { width: '190px', flexShrink: '0', color: 'var(--ink-2)' } }, k),
+        h('div', { style: { flex: '1', height: '14px', position: 'relative',
+          background: 'var(--surface-2)', borderRadius: '3px' } },
+          h('div', { style: { position: 'absolute', top: '0', bottom: '0',
+            left: v >= 0 ? '50%' : (50 - mag) + '%', width: mag + '%',
+            background: v >= 0 ? 'var(--mint-500)' : '#E8833A', borderRadius: '3px' } }),
+          h('div', { style: { position: 'absolute', top: '-2px', bottom: '-2px', left: '50%',
+            width: '1px', background: 'var(--ink-3, rgba(0,0,0,.25))' } })),
+        h('div', { style: { width: '62px', textAlign: 'right', fontFamily: 'var(--mono)',
+          fontSize: '12px' } }, (v >= 0 ? '+' : '') + v.toFixed(3)));
+    };
+    const hasScores = r.pathway_scores && Object.keys(r.pathway_scores).length;
+    const pathways = hasScores ? card('Signature and pathway scores',
+      'Mean z-score across each gene set — independent of the classifier',
+      h('div', {},
+        r.verhaak_nearest ? h('p', { class: 'card-d', style: { marginBottom: '12px' } },
+          'Nearest Verhaak 2010 class: ', h('b', {}, r.verhaak_nearest)) : null,
+        h('div', { style: { fontSize: '12px', letterSpacing: '.1em', textTransform: 'uppercase',
+          color: 'var(--ink-2)', fontWeight: '650', margin: '4px 0 8px' } }, 'Verhaak signatures'),
+        ...Object.entries(r.signature_scores || {}).map(([k, v]) => scoreRow(k, v)),
+        h('div', { style: { fontSize: '12px', letterSpacing: '.1em', textTransform: 'uppercase',
+          color: 'var(--ink-2)', fontWeight: '650', margin: '16px 0 8px' } }, 'Pathway programmes'),
+        ...Object.entries(r.pathway_scores).map(([k, v]) => scoreRow(k.replace(/_/g, ' '), v)),
+        h('p', { class: 'card-d', style: { marginTop: '12px' } },
+          'Positive means the programme is elevated in this tumour relative to the ' +
+          'reference cohort. These are computed from the gene sets directly and do not ' +
+          'use the classifier, so they are an independent read on the call above.'))) : null;
 
     /* technical, collapsed */
     const tech = h('details', { class: 'card', style: { padding: '18px 22px' } },
@@ -495,14 +534,20 @@ export default async function analyze({ query }) {
           ? 'This browser — the frozen weights, no server' : 'Recorded from the reference run'),
         kv('Processing time', r.total_ms + ' ms'),
         kv('Position (5-D)', r.embedding.map(v => v.toFixed(2)).join(', ')),
+        r.margin !== undefined
+          ? kv('Margin to runner-up', r.margin.toFixed(4) +
+              `  (call: ${r.call}, threshold ${(r.core_tau ?? 0.5).toFixed(2)})`)
+          : null,
+        r.probability_meaning ? kv('What the percentage means', r.probability_meaning) : null,
         why.pc_contributions?.length
           ? kv('Strongest dimension', why.pc_contributions
               .slice().sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))[0].pc)
           : null,
-        kv('Agreement with the Python engine', 'exact to 6 × 10⁻⁸')));
+        kv('Agreement with the Python engine', 'verified to 1.6 × 10⁻⁵ across all 328 reference patients')));
 
     resultHost.replaceChildren(h('div', { class: 'grid', style: { gap: '18px' } },
-      [headline, reportRow, conf, bioCard, plain, genesFor, probs, genesAgainst, markers, map, tech]
+      [headline, reportRow, conf, bioCard, plain, genesFor, probs, pathways,
+       genesAgainst, markers, map, tech]
         .filter(Boolean)));
 
     if (demos.length > 1) {
