@@ -30,8 +30,17 @@ function tierName(t) {
   if (t.startsWith('TIER 1')) return 'Tier 1 · Actionable';
   if (t.startsWith('TIER 2')) return 'Tier 2 · Credible';
   if (t.startsWith('TIER 3')) return 'Tier 3 · Hypothesis';
+  // A candidate that passed both statistical gates but whose literature nobody
+  // has read yet is NOT excluded. Saying so would invert its meaning.
+  if (t.startsWith('UNCHECKED')) return 'Not yet reviewed';
   return 'Excluded';
 }
+
+/* The panel now carries every candidate that passed the statistics (up to 176
+   for PN), which is right for the web page but far too long for a printed
+   report. Reviewed genes carry the substance, so they come first, and the rest
+   are summarised by a count. */
+const REPORT_MAX_GENES = 30;
 
 /**
  * @param {object} result   the object returned by engine.js `analyse()`
@@ -42,8 +51,13 @@ function tierName(t) {
 export function openPatientReport(result, cmap, bio, meta = {}) {
   const c = cmap[result.predicted_class];
   const classKey = String(result.predicted_class);
-  const genes = (bio?.by_class?.[classKey] || []).slice();
+  const allGenes = (bio?.by_class?.[classKey] || []).slice();
   const summary = bio?.summary_by_class?.[classKey] || {};
+  // reviewed genes first, then the highest-ranked unreviewed ones, then cap
+  const reviewed = allGenes.filter(g => g.literature_checked !== false);
+  const unreviewed = allGenes.filter(g => g.literature_checked === false);
+  const genes = reviewed.concat(unreviewed).slice(0, REPORT_MAX_GENES);
+  const omitted = allGenes.length - genes.length;
   const active = genes.filter(g => !g.excluded);
   const excluded = genes.filter(g => g.excluded);
 
@@ -222,8 +236,9 @@ export function openPatientReport(result, cmap, bio, meta = {}) {
   ${markerLine}
 
   <h2>Biomarkers &amp; drug targets for ${esc(c.label)} — ${esc(c.title.replace(c.label + ' ', ''))}</h2>
-  <p class="h-sub">From the HELIXA biomarker engine: genes that mark this subtype in real patients <i>and</i> that a glioblastoma cell line cannot survive without while normal tissue can, checked one at a time against the published literature.</p>
+  <p class="h-sub">From the HELIXA biomarker engine: genes that mark this subtype in real patients <i>and</i> that a glioblastoma cell line cannot survive without while normal tissue can. Genes marked <i>Not yet reviewed</i> cleared both statistical gates but their literature has not been read — that is a reviewing backlog, not a negative finding.</p>
   <div class="summary-strip">
+    <div class="s"><b>${summary.total_candidates ?? genes.length}</b><span>Candidates</span></div>
     <div class="s"><b>${summary.tier1_actionable ?? 0}</b><span>Tier 1 · Actionable</span></div>
     <div class="s"><b>${summary.tier2_credible ?? 0}</b><span>Tier 2 · Credible</span></div>
     <div class="s"><b>${summary.tier3_hypothesis ?? 0}</b><span>Tier 3 · Hypothesis</span></div>
@@ -234,6 +249,12 @@ export function openPatientReport(result, cmap, bio, meta = {}) {
     <thead><tr><th>#</th><th>Gene</th><th>Tier</th><th>Function</th><th>Drug status</th><th>Score</th></tr></thead>
     <tbody>${genes.map(geneRow).join('')}</tbody>
   </table>
+  ${omitted > 0 ? `<p style="font-size:10.5px;color:var(--ink-2);margin-top:6px">
+    Showing the ${genes.length} genes with the most information behind them. A further
+    <b>${omitted}</b> candidate${omitted === 1 ? '' : 's'} for this subtype passed the same two
+    statistical gates but ${omitted === 1 ? 'has' : 'have'} not been literature-reviewed;
+    ${omitted === 1 ? 'it is' : 'they are'} listed in full, with every source link, in the
+    Analyze a Patient page.</p>` : ''}
   <p style="font-size:10.5px;color:var(--ink-2);margin-top:8px">
     Candidates, not treatments. Two named drugs against targets that can appear on this list —
     cilengitide (ITGB5) and palbociclib (CDK6) — have already failed glioblastoma trials; that

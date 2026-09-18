@@ -10,6 +10,7 @@ import { h, card, section, badge, banner, kv, esc } from '../ui.js?v=20260918a';
 import { gauge, barsH, scatter, legend } from '../charts.js?v=20260918a';
 import { loadModel, analyse, isLoaded, modelInfo } from '../engine.js?v=20260918a';
 import { openPatientReport } from '../report.js?v=20260918a';
+import { biomarkerPanel } from '../biomarker_panel.js?v=20260918a';
 
 
 /* Drug transparency database - maps genes to drug status info */
@@ -366,14 +367,22 @@ export default async function analyze({ query }) {
         openPatientReport(r, cmap, biomarkers, { patientLabel, fileName: file?.name, isDemo: demo }) },
         'Download / Print Patient Report'));
 
-    /* biomarkers & drug targets for this subtype */
+    /* biomarkers & drug targets for this subtype
+       Rendered by js/biomarker_panel.js, which lists EVERY candidate that passed
+       both statistical gates — not just the ~10 per subtype somebody had time to
+       read the literature on — with plain-language labels, the dependency
+       picture, and a source link behind every claim. */
     const classKey = String(r.predicted_class);
+    const bioCard = biomarkerPanel(biomarkers, classKey, c.label);
+
+    /* the previous inline table, kept only as a fallback if the panel data is a
+       v1 file without the metric definitions the new panel needs */
     const geneList = (biomarkers?.by_class?.[classKey] || []);
     const bioSummary = biomarkers?.summary_by_class?.[classKey];
     const tierKind = t => t.startsWith('TIER 1') ? 'ok' : t.startsWith('TIER 2') ? 'info'
       : t.startsWith('TIER 3') ? 'warn' : 'err';
 
-    const bioCard = geneList.length ? card(
+    const bioCardLegacy = (!bioCard && geneList.length) ? card(
       `Biomarkers & drug targets for ${c.label}`,
       'Genes that mark this subtype in real patients AND that glioblastoma cell lines cannot ' +
       'survive without while normal tissue can — checked one at a time against the literature',
@@ -546,8 +555,8 @@ export default async function analyze({ query }) {
         kv('Agreement with the Python engine', 'verified to 1.6 × 10⁻⁵ across all 328 reference patients')));
 
     resultHost.replaceChildren(h('div', { class: 'grid', style: { gap: '18px' } },
-      [headline, reportRow, conf, bioCard, plain, genesFor, probs, pathways,
-       genesAgainst, markers, map, tech]
+      [headline, reportRow, conf, bioCard || bioCardLegacy, plain, genesFor, probs,
+       pathways, genesAgainst, markers, map, tech]
         .filter(Boolean)));
 
     if (demos.length > 1) {
