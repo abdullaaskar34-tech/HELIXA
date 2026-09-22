@@ -561,7 +561,7 @@ export default async function analyze({ query }) {
 
     if (demos.length > 1) {
       resultHost.appendChild(h('div', { style: { marginTop: '18px' } },
-        card('Try another example', 'Real patients from four different subtypes',
+        card('Try another example', 'Real patients from five different subtypes',
           h('div', { style: { display: 'flex', gap: '9px', flexWrap: 'wrap' } },
             demos.map((d, i) => h('button', {
               class: 'chip' + (isDemo && d === r ? ' on' : ''), type: 'button',
