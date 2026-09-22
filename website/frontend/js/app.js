@@ -66,7 +66,7 @@ let stopIntro = null;
 
 /* ─────────────────────────────────────────── router */
 const routes = {
-  '/':        () => import('./views/home.js?v=20260918a'),
+  '/':        () => import('./views/home.js?v=20260922t'),
   '/analyze': () => import('./views/analyze.js?v=20260918a'),
 };
 

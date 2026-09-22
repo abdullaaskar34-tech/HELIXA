@@ -93,15 +93,30 @@ export default async function home() {
         num('4', 'Independent studies agree')))));
 
   /* ── team ───────────────────────────────────────────────────── */
-  root.appendChild(h('section', { class: 'section' },
+  const UNI = { 'KBÜ': 'Karabük University', 'İTÜ': 'Istanbul Technical University' };
+  const CAP = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/>' +
+    '<path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5"/></svg>';
+  const eduRow = line => {
+    const [deg, uni] = line.split(/\s+—\s+/);
+    return h('div', { class: 'tm-edu-row' },
+      h('span', { class: 'tm-edu-ic', html: CAP }),
+      h('span', { class: 'tm-edu-deg' }, deg),
+      uni ? h('span', { class: 'tm-uni', title: UNI[uni] || uni }, uni) : null);
+  };
+  root.appendChild(h('section', { class: 'section tm-section' },
     h('div', { class: 'wrap' },
       section('KBU-MedLab', 'The team', null),
-      h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(212px,1fr))' } },
-        project.team_members.map(m => h('div', { class: 'card team-card hov' },
-          h('div', { class: 'team-av' }, initials(m.name)),
-          h('div', { class: 'team-n' }, m.name),
-          h('div', { class: 'team-r' }, m.role),
-          h('div', { class: 'team-l' }, m.lines.map(l => h('div', {}, l)))))))));
+      h('div', { class: 'tm-grid' },
+        project.team_members.map((m, i) => h('div', {
+            class: 'tm-card tm-c' + (i % 5) + (i === 0 ? ' tm-lead' : ''),
+            style: { animationDelay: `${i * 90}ms` } },
+          h('div', { class: 'tm-band' }),
+          h('div', { class: 'tm-av' }, h('span', {}, initials(m.name))),
+          i === 0 ? h('div', { class: 'tm-crown' }, 'Leader') : null,
+          h('div', { class: 'tm-n' }, m.name),
+          h('div', { class: 'tm-rw' }, h('div', { class: 'tm-r' }, m.role)),
+          h('div', { class: 'tm-edu' }, m.lines.map(eduRow))))))));
 
   /* ── contact + teknofest ────────────────────────────────────── */
   root.appendChild(h('section', { class: 'section', style: { paddingTop: '0' } },
