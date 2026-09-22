@@ -355,16 +355,18 @@ details.card[open] summary::before{transform:rotate(90deg)}
 .tm-c2{--a1:#0F4E4A;--a2:#3FB8A6}
 .tm-c3{--a1:#14746F;--a2:#A8E6C4}
 .tm-c4{--a1:#2A9D8F;--a2:#4FDCC0}
-.tm-band{height:78px;margin:0 -20px;background:linear-gradient(135deg,var(--a1),var(--a2));position:relative}
+.tm-band{height:84px;margin:0 -20px;background:linear-gradient(135deg,var(--a1),var(--a2));position:relative}
 .tm-band::after{content:"";position:absolute;inset:0;opacity:.35;
   background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.55) 0 2px,transparent 3px) 0 0/22px 22px,
              radial-gradient(circle at 70% 60%,rgba(255,255,255,.35) 0 1.5px,transparent 2.5px) 0 0/30px 30px}
-.tm-av{width:84px;height:84px;margin:-44px auto 14px;border-radius:50%;padding:4px;position:relative;
+.tm-av{width:104px;height:104px;margin:-54px auto 14px;border-radius:50%;padding:4px;position:relative;
   background:conic-gradient(from 200deg,var(--a2),var(--a1),var(--a2));box-shadow:0 8px 22px rgba(6,39,37,.18);
   transition:transform .5s var(--ease)}
 .tm-av span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;
   background:var(--surface);color:var(--a1);font-size:25px;font-weight:750;letter-spacing:-.02em;
   border:3px solid var(--surface)}
+.tm-av img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;
+  border:3px solid var(--surface);background:var(--surface-2)}
 .tm-card:hover .tm-av{transform:scale(1.07) rotate(-4deg)}
 .tm-n{font-size:16.5px;font-weight:700;color:var(--ink)}
 .tm-rw{min-height:52px;display:flex;align-items:center;justify-content:center}

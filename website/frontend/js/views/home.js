@@ -112,7 +112,10 @@ export default async function home() {
             class: 'tm-card tm-c' + (i % 5) + (i === 0 ? ' tm-lead' : ''),
             style: { animationDelay: `${i * 90}ms` } },
           h('div', { class: 'tm-band' }),
-          h('div', { class: 'tm-av' }, h('span', {}, initials(m.name))),
+          h('div', { class: 'tm-av' }, m.photo
+            ? h('img', { src: m.photo, alt: m.name, loading: 'lazy', decoding: 'async',
+                onerror: e => e.target.replaceWith(h('span', {}, initials(m.name))) })
+            : h('span', {}, initials(m.name))),
           i === 0 ? h('div', { class: 'tm-crown' }, 'Leader') : null,
           h('div', { class: 'tm-n' }, m.name),
           h('div', { class: 'tm-rw' }, h('div', { class: 'tm-r' }, m.role)),
